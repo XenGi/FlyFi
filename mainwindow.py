@@ -1,11 +1,7 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 FlyFi - Floppy-Fidelity
 
-Created to fulfill all your floppy music needs.
-
-Created on Tue 06-01-2013_05:17:42+0100
 @author: Ricardo (XeN) Band <xen@c-base.org>,
          Stefan (coon) Thiele <coon@c-base.org>
 
@@ -40,25 +36,23 @@ Created on Tue 06-01-2013_05:17:42+0100
     Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
 """
 
-__author__ = "Ricardo (XeN) Band <xen@c-base.org>, \
-              Stefan (coon) Thiele <coon@c-base.org>"
-__copyright__ = "Copyright (C) 2013 Ricardo Band, Stefan Thiele"
-__revision__ = "$Id$"
-__version__ = "0.1"
-
-import sys
-from PySide import QtGui
-from mainwindow import MainWindow
+from PySide import QtGui, QtCore
 
 
-def main():
-    """
-    create QApp and show MainWindow
-    """
-    app = QtGui.QApplication(sys.argv)
-    win = MainWindow()
-    sys.exit(app.exec_())
+class MainWindow(QtGui.QWidget):
 
+    def __init__(self):
+        super(MainWindow, self).__init__()
 
-if __name__ == "__main__":
-    main()
+        self.initUI()
+
+    def initUI(self):
+        qbtn = QtGui.QPushButton('Quit', self)
+        qbtn.clicked.connect(QtCore.QCoreApplication.instance().quit)
+        qbtn.resize(qbtn.sizeHint())
+        qbtn.move(50, 50)
+
+        self.setGeometry(300, 300, 250, 150)
+        self.setWindowTitle('Don\'t push this button!')
+        self.setWindowIcon(QtGui.QIcon('flyfi-logo.png'))
+        self.show()
