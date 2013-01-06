@@ -48,21 +48,36 @@ class SettingsWindow(QtGui.QMainWindow):
         super(SettingsWindow, self).__init__()
 
         self.init_ui()
+        self.update_serial_ports()
 
     def init_ui(self):
         self.resize(480, 320)
-        self.setWindowTitle('Settings')
+        self.setWindowTitle('FlyFi - Settings')
         self.setWindowIcon(QtGui.QIcon('images/settings.png'))
         self.center()
 
-        centralwidget = QtGui.QWidget()
-        grid = QtGui.QGridLayout()
+        centralwidget = QtGui.QTabWidget()
 
-        self.lab_freq = QtGui.QLabel()
+        tab_channel = QtGui.QWidget()
+        channel_vbox = QtGui.QVBoxLayout()
+        self.channel_table = QtGui.QTableWidget(16, 2)
+        self.channel_table.cellClicked.connect(self.cell_clicked)
+        self.channel_table.setHorizontalHeaderLabels(['Active',
+                                              'Serial port'])
+        for row in range(0, 16):
+            self.channel_table.setCellWidget(row, 0, QtGui.QCheckBox())
+            #TODO: load from config
+            self.channel_table.cellWidget(row, 0).setCheckState(QtCore.Qt.Checked)
+            self.channel_table.setCellWidget(row, 1, QtGui.QComboBox())
+        pb_update_serial = QtGui.QPushButton('Reload serial ports')
+        pb_update_serial.clicked.connect(self.update_serial_ports)
 
-        grid.addWidget(QtGui.QLabel('Frequency:'), 0, 0)
+        channel_vbox.addWidget(self.channel_table)
+        channel_vbox.addWidget(pb_update_serial)
+        tab_channel.setLayout(channel_vbox)
 
-        centralwidget.setLayout(grid)
+        centralwidget.addTab(tab_channel, "Channels")
+
         self.setCentralWidget(centralwidget)
 
     def center(self):
@@ -70,3 +85,19 @@ class SettingsWindow(QtGui.QMainWindow):
         desktop_center = QtGui.QDesktopWidget().availableGeometry().center()
         frame_geo.moveCenter(desktop_center)
         self.move(frame_geo.topLeft())
+
+    def cell_clicked(self, row, col):
+        if col == 0:
+            self.channel_table.cellWidget(row, 0).toggle()
+
+    def update_serial_ports(self):
+        ports = serial.tools.list_ports.comports()
+        self.serialports = []
+        for port in ports:
+            if port[2] != 'n/a':
+                self.serialports.append(port[0])
+        for row in range(0, 16):
+            self.channel_table.cellWidget(row, 1).clear()
+            self.channel_table.cellWidget(row, 1).addItems(self.serialports)
+            #TODO: if config.channel.serial in self.serialports: select config.channel.serial
+        self.channel_table.resizeColumnsToContents()
