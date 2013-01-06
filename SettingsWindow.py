@@ -1,12 +1,7 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 FlyFi - Floppy-Fidelity
-=======
 
-Created to fulfill all your floppy music needs.
-
-Created on Tue 06-01-2013_05:17:42+0100
 @author: Ricardo (XeN) Band <xen@c-base.org>,
          Stephan (coon) Thiele <coon@c-base.org>
 
@@ -43,26 +38,35 @@ Created on Tue 06-01-2013_05:17:42+0100
     FlyFi is using tango icons: <http://tango.freedesktop.org/>.
 """
 
-__author__ = "Ricardo (XeN) Band <xen@c-base.org>, \
-              Stephan (coon) Thiele <coon@c-base.org>"
-__copyright__ = "Copyright (C) 2013 Ricardo Band, Stephan Thiele"
-__revision__ = "$Id$"
-__version__ = "0.1"
-
-import sys
-from PySide import QtGui
-from MainWindow import MainWindow
+from PySide import QtGui, QtCore
+import serial.tools.list_ports
 
 
-def main():
-    """
-    create QApp and show MainWindow
-    """
-    app = QtGui.QApplication(sys.argv)
-    win = MainWindow()
-    win.show()
-    sys.exit(app.exec_())
+class SettingsWindow(QtGui.QMainWindow):
 
+    def __init__(self):
+        super(SettingsWindow, self).__init__()
 
-if __name__ == "__main__":
-    main()
+        self.init_ui()
+
+    def init_ui(self):
+        self.resize(480, 320)
+        self.setWindowTitle('Settings')
+        self.setWindowIcon(QtGui.QIcon('images/settings.png'))
+        self.center()
+
+        centralwidget = QtGui.QWidget()
+        grid = QtGui.QGridLayout()
+
+        self.lab_freq = QtGui.QLabel()
+
+        grid.addWidget(QtGui.QLabel('Frequency:'), 0, 0)
+
+        centralwidget.setLayout(grid)
+        self.setCentralWidget(centralwidget)
+
+    def center(self):
+        frame_geo = self.frameGeometry()
+        desktop_center = QtGui.QDesktopWidget().availableGeometry().center()
+        frame_geo.moveCenter(desktop_center)
+        self.move(frame_geo.topLeft())
