@@ -55,7 +55,7 @@ class FloppyOut():
     def __init__(self):
         self.ser = serial.Serial()
 
-    def initSerialCom(self, com_port):
+    def init_serial_com(self, com_port):
         self.ser.port = com_port 
         self.ser.baudrate = 9600 
         self.ser.parity = serial.PARITY_NONE
@@ -63,11 +63,11 @@ class FloppyOut():
         self.ser.bytesize = serial.EIGHTBITS
         self.ser.open()
     
-    def disconnectSerial(self, com_port):
+    def disconnect_serial(self, com_port):
         self.ser.close()
     
     
-    def playTone(self, channel, frequency):
+    def play_tone(self, channel, frequency):
         pass
 
 

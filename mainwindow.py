@@ -3,7 +3,7 @@
 FlyFi - Floppy-Fidelity
 
 @author: Ricardo (XeN) Band <xen@c-base.org>,
-         Stefan (coon) Thiele <coon@c-base.org>
+         Stephan (coon) Thiele <coon@c-base.org>
 
     This file is part of FlyFi.
 

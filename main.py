@@ -8,7 +8,7 @@ Created to fulfill all your floppy music needs.
 
 Created on Tue 06-01-2013_05:17:42+0100
 @author: Ricardo (XeN) Band <xen@c-base.org>,
-         Stefan (coon) Thiele <coon@c-base.org>
+         Stephan (coon) Thiele <coon@c-base.org>
 
     This file is part of FlyFi.
 
@@ -42,8 +42,8 @@ Created on Tue 06-01-2013_05:17:42+0100
 """
 
 __author__ = "Ricardo (XeN) Band <xen@c-base.org>, \
-              Stefan (coon) Thiele <coon@c-base.org>"
-__copyright__ = "Copyright (C) 2013 Ricardo Band, Stefan Thiele"
+              Stephan (coon) Thiele <coon@c-base.org>"
+__copyright__ = "Copyright (C) 2013 Ricardo Band, Stephan Thiele"
 __revision__ = "$Id$"
 __version__ = "0.1"
 
