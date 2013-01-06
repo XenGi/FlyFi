@@ -41,20 +41,58 @@ FlyFi - Floppy-Fidelity
 from PySide import QtGui, QtCore
 
 
-class MainWindow(QtGui.QWidget):
+class MainWindow(QtGui.QMainWindow):
 
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        self.initUI()
+        self.init_ui()
 
-    def initUI(self):
-        qbtn = QtGui.QPushButton('Quit', self)
-        qbtn.clicked.connect(QtCore.QCoreApplication.instance().quit)
-        qbtn.resize(qbtn.sizeHint())
-        qbtn.move(50, 50)
+    def init_ui(self):
+        self.resize(480, 320)
+        self.setWindowTitle('FlyFi - Floppy-Fidelity')
+        self.setWindowIcon(QtGui.QIcon('images/flyfi-logo.png'))
+        self.center()
 
-        self.setGeometry(300, 300, 250, 150)
-        self.setWindowTitle('Don\'t push this button!')
-        self.setWindowIcon(QtGui.QIcon('flyfi-logo.png'))
+        centralwidget = QtGui.QWidget()
+        grid = QtGui.QGridLayout()
+
+        lcd_freq = QtGui.QLCDNumber()
+        lcd_channel = QtGui.QLCDNumber()
+        pb_play = QtGui.QPushButton('Play')
+        pb_play.clicked.connect(self.pb_play_pressed)
+        pb_play.resize(pb_play.sizeHint())
+
+        grid.addWidget(QtGui.QLabel('Frequency:'), 0, 0)
+        grid.addWidget(lcd_freq, 0, 1)
+        grid.addWidget(QtGui.QLabel('Channel:'), 1, 0)
+        grid.addWidget(lcd_channel, 1, 1)
+        grid.addWidget(pb_play, 2, 0, 1, 2)
+
+        centralwidget.setLayout(grid)
+        self.setCentralWidget(centralwidget)
+
+        self.statusBar().showMessage('Ready')
+
+        act_exit = QtGui.QAction(QtGui.QIcon('images/exit.png'), '&Exit', self)
+        act_exit.setShortcut('Ctrl+Q')
+        act_exit.setStatusTip('Exit application')
+        act_exit.triggered.connect(QtCore.QCoreApplication.instance().quit)
+
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu('&File')
+        file_menu.addAction(act_exit)
+
+        self.toolbar = self.addToolBar('&Exit')
+        self.toolbar.addAction(act_exit)
+
         self.show()
+
+    def center(self):
+        frame_geo = self.frameGeometry()
+        desktop_center = QtGui.QDesktopWidget().availableGeometry().center()
+        frame_geo.moveCenter(desktop_center)
+        self.move(frame_geo.topLeft())
+
+    def pb_play_pressed(self):
+        pass
