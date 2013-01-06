@@ -39,12 +39,15 @@ FlyFi - Floppy-Fidelity
 """
 
 from PySide import QtGui, QtCore
+from FloppyOut import FloppyOut
 
 
 class MainWindow(QtGui.QMainWindow):
 
     def __init__(self):
         super(MainWindow, self).__init__()
+
+        self.fo = FloppyOut()
 
         self.init_ui()
 
@@ -57,17 +60,30 @@ class MainWindow(QtGui.QMainWindow):
         centralwidget = QtGui.QWidget()
         grid = QtGui.QGridLayout()
 
-        lcd_freq = QtGui.QLCDNumber()
-        lcd_channel = QtGui.QLCDNumber()
+        self.lab_freq = QtGui.QLabel()
+        self.lab_freq.setMinimumWidth(36)
+        self.lab_freq.setAlignment(QtCore.Qt.AlignRight)
+        sld_freq = QtGui.QSlider()
+        sld_freq.setOrientation(QtCore.Qt.Horizontal)
+        sld_freq.setTracking(True)
+        sld_freq.setRange(0, 800)
+        sld_freq.valueChanged.connect(self.lab_freq.setNum)
+        sld_freq.setPageStep(1)
+        sld_freq.setSingleStep(1)
+        self.lab_freq.setNum(sld_freq.value())
+        self.spb_channel = QtGui.QSpinBox()
+        self.spb_channel.setRange(1, 16)
         pb_play = QtGui.QPushButton('Play')
         pb_play.clicked.connect(self.pb_play_pressed)
         pb_play.resize(pb_play.sizeHint())
 
         grid.addWidget(QtGui.QLabel('Frequency:'), 0, 0)
-        grid.addWidget(lcd_freq, 0, 1)
+        grid.addWidget(sld_freq, 0, 1)
+        grid.addWidget(self.lab_freq, 0, 2)
+        grid.addWidget(QtGui.QLabel('Hz'), 0, 3)
         grid.addWidget(QtGui.QLabel('Channel:'), 1, 0)
-        grid.addWidget(lcd_channel, 1, 1)
-        grid.addWidget(pb_play, 2, 0, 1, 2)
+        grid.addWidget(self.spb_channel, 1, 1, 1, 3)
+        grid.addWidget(pb_play, 2, 0, 1, 4)
 
         centralwidget.setLayout(grid)
         self.setCentralWidget(centralwidget)
@@ -95,4 +111,4 @@ class MainWindow(QtGui.QMainWindow):
         self.move(frame_geo.topLeft())
 
     def pb_play_pressed(self):
-        pass
+        self.fo.play_tone(int(self.lab_freq.text(), 10), self.spb_channel.value())
