@@ -62,7 +62,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.lab_freq = QtGui.QLabel()
         self.lab_freq.setMinimumWidth(36)
-        self.lab_freq.setAlignment(QtCore.Qt.AlignRight)
+        self.lab_freq.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         sld_freq = QtGui.QSlider()
         sld_freq.setOrientation(QtCore.Qt.Horizontal)
         sld_freq.setTracking(True)
@@ -111,4 +111,4 @@ class MainWindow(QtGui.QMainWindow):
         self.move(frame_geo.topLeft())
 
     def pb_play_pressed(self):
-        self.fo.play_tone(int(self.lab_freq.text(), 10), self.spb_channel.value())
+        self.fo.play_tone(self.spb_channel.value(), int(self.lab_freq.text(), 10))
