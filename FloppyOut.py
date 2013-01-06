@@ -70,22 +70,28 @@ class FloppyOut():
     
     
     def play_tone(self, channel, frequency):
+
+        if channel < 1 or channel > 16:
+            raise Exception("channel '%d' out of range. it has to be between 1 - 16" % channel)
+        
         if frequency != 0:
             half_period = (1000000 / frequency) / (2 * self.ARDUINO_RESOLUTION) # period in microseconds
         else:
             half_period = 0
 
         # build 3 byte data packet for floppy
-        # 1: channel
+        # 1: physical_pin (see microcontroller code for further information)
         # 2: half_period
         
-        data = struct.pack('B', channel) + struct.pack('>H', int(half_period))
+        physical_pin = channel * 2
+        data = struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
         self.ser.write(data)
 
 
 def main():
     fl = FloppyOut()
-    #fl.init_serial_com("/dev/ttyUSB3")
+    fl.init_serial_com("/dev/ttyUSB2")
+    fl.play_tone(1, 0)
     
 
 if __name__ == "__main__":
