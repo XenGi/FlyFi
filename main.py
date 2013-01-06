@@ -39,6 +39,8 @@ Created on Tue 06-01-2013_05:17:42+0100
 
     Sie sollten eine Kopie der GNU General Public License zusammen mit diesem
     Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
+
+    FlyFi is using tango icons: <http://tango.freedesktop.org/>.
 """
 
 __author__ = "Ricardo (XeN) Band <xen@c-base.org>, \
@@ -49,7 +51,7 @@ __version__ = "0.1"
 
 import sys
 from PySide import QtGui
-from mainwindow import MainWindow
+from MainWindow import MainWindow
 
 
 def main():
