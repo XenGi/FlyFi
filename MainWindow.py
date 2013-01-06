@@ -40,6 +40,7 @@ FlyFi - Floppy-Fidelity
 
 from PySide import QtGui, QtCore
 from FloppyOut import FloppyOut
+import serial.tools.list_ports
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -50,6 +51,7 @@ class MainWindow(QtGui.QMainWindow):
         self.fo = FloppyOut()
 
         self.init_ui()
+        self.refresh_serial()
 
     def init_ui(self):
         self.resize(480, 320)
@@ -95,11 +97,23 @@ class MainWindow(QtGui.QMainWindow):
         act_exit.setStatusTip('Exit application')
         act_exit.triggered.connect(QtCore.QCoreApplication.instance().quit)
 
+        act_refresh = QtGui.QAction(QtGui.QIcon('images/refresh.png'), '&Refresh', self)
+        act_refresh.setShortcut('Ctrl+R')
+        act_refresh.setStatusTip('Refresh serial ports')
+        act_refresh.triggered.connect(self.refresh_serial)
+
         menubar = self.menuBar()
         file_menu = menubar.addMenu('&File')
         file_menu.addAction(act_exit)
+        file_menu.addAction(act_refresh)
 
-        self.toolbar = self.addToolBar('&Exit')
+        self.toolbar = self.addToolBar('Toolbar')
+        self.toolbar.addWidget(QtGui.QLabel('Port:'))
+        self.cbo_serialport = QtGui.QComboBox()
+        self.cbo_serialport.activated.connect(self.serial_selected)
+        self.toolbar.addWidget(self.cbo_serialport)
+        self.toolbar.addAction(act_refresh)
+        self.toolbar.addSeparator()
         self.toolbar.addAction(act_exit)
 
         self.show()
@@ -112,3 +126,16 @@ class MainWindow(QtGui.QMainWindow):
 
     def pb_play_pressed(self):
         self.fo.play_tone(self.spb_channel.value(), int(self.lab_freq.text(), 10))
+
+    def refresh_serial(self):
+        self.cbo_serialport.clear()
+        ports = serial.tools.list_ports.comports()
+        for port in ports:
+            if port[2] != 'n/a':
+                self.cbo_serialport.addItem(port[0])
+        if self.cbo_serialport.count() > 0:
+            self.cbo_serialport.setCurrentIndex(0)
+        self.statusBar().showMessage('%d serial ports found.', self.cbo_serialport.count())
+
+    def serial_selected(self):
+        pass
