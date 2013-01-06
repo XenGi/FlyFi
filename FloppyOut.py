@@ -54,25 +54,34 @@ import struct
 
 class FloppyOut():
     def __init__(self):
-        self.ser = serial.Serial()
+        self.MAX_CHANNELS = 2
         self.ARDUINO_RESOLUTION = 40 # the timer of the arduino fires every 40 miliseconds
+        self._channel_ports = [serial.Serial() for i in range(self.MAX_CHANNELS)] # the serial ports which are mapped to each channel
+        
+        for i in range(self.MAX_CHANNELS):
+            self._channel_ports[i].baudrate = 9600 
+            self._channel_ports[i].parity = serial.PARITY_NONE
+            self._channel_ports[i].stopbits = serial.STOPBITS_ONE
+            self._channel_ports[i].bytesize = serial.EIGHTBITS
+            
+            
+    def connect_serial_ports(self):
+        for i in range(self.MAX_CHANNELS):
+            self._channel_ports[i].open() 
+    
+    def disconnect_serial_ports(self):
+        for i in range(self.MAX_CHANNELS):
+            self._channel_ports[i].close()
 
-    def init_serial_com(self, com_port):
-        self.ser.port = com_port 
-        self.ser.baudrate = 9600 
-        self.ser.parity = serial.PARITY_NONE
-        self.ser.stopbits = serial.STOPBITS_ONE
-        self.ser.bytesize = serial.EIGHTBITS
-        self.ser.open()
+    def map_serial_port_to_channel(self, channel, serial_port):
+	self._channel_ports[channel - 1].port = serial_port 
     
-    def disconnect_serial(self, com_port):
-        self.ser.close()
-    
+      
     
     def play_tone(self, channel, frequency):
 
-        if channel < 1 or channel > 16:
-            raise Exception("channel '%d' out of range. it has to be between 1 - 16" % channel)
+        if channel < 1 or channel > self.MAX_CHANNELS:
+            raise Exception("channel '%d' out of range. it has to be between 1 - %d" % (channel, self.MAX_CHANNELS) )
         
         if frequency != 0:
             half_period = (1000000 / frequency) / (2 * self.ARDUINO_RESOLUTION) # period in microseconds
@@ -85,13 +94,17 @@ class FloppyOut():
         
         physical_pin = channel * 2
         data = struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
-        self.ser.write(data)
+        self._channel_ports[channel - 1].write(data)
 
 
 def main():
     fl = FloppyOut()
-    fl.init_serial_com("/dev/ttyUSB2")
+    fl.map_serial_port_to_channel(1, "/dev/ttyUSB0")    
+    fl.map_serial_port_to_channel(2, "/dev/ttyUSB0")  
+    fl.connect_serial_ports()
+    
     fl.play_tone(1, 0)
+    fl.play_tone(2, 0)
     
 
 if __name__ == "__main__":
