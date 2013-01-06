@@ -49,11 +49,13 @@ __version__ = "0.1"
 
 
 import serial
+import struct
 
 
 class FloppyOut():
     def __init__(self):
         self.ser = serial.Serial()
+        self.ARDUINO_RESOLUTION = 40 # the timer of the arduino fires every 40 miliseconds
 
     def init_serial_com(self, com_port):
         self.ser.port = com_port 
@@ -68,12 +70,22 @@ class FloppyOut():
     
     
     def play_tone(self, channel, frequency):
-        pass
+        if frequency != 0:
+            half_period = (1000000 / frequency) / (2 * self.ARDUINO_RESOLUTION) # period in microseconds
+        else:
+            half_period = 0
+
+        # build 3 byte data packet for floppy
+        # 1: channel
+        # 2: half_period
+        
+        data = struct.pack('B', channel) + struct.pack('>H', int(half_period))
+        self.ser.write(data)
 
 
 def main():
     fl = FloppyOut()
-    fl.initSerialCom("/dev/ttyUSB3")
+    #fl.init_serial_com("/dev/ttyUSB3")
     
 
 if __name__ == "__main__":
