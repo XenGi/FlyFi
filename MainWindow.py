@@ -41,20 +41,28 @@ FlyFi - Floppy-Fidelity
 from PySide import QtGui, QtCore
 from SettingsWindow import SettingsWindow
 from FloppyOut import FloppyOut
-import serial.tools.list_ports
 
 
 class MainWindow(QtGui.QMainWindow):
-
+    """
+    The mainwindow containing options to fine tune things
+    and start everything up.
+    """
     def __init__(self):
+        """
+        generate other windows, floppy output control and create the gui
+        """
         super(MainWindow, self).__init__()
 
         self.settingswindow = SettingsWindow()
-        self.fo = FloppyOut()
+        self.fout = FloppyOut()
 
         self.init_ui()
 
     def init_ui(self):
+        """
+        create the gui and connect actions
+        """
         self.resize(480, 320)
         self.setWindowTitle('FlyFi - Floppy-Fidelity')
         self.setWindowIcon(QtGui.QIcon('images/flyfi-logo.png'))
@@ -65,7 +73,8 @@ class MainWindow(QtGui.QMainWindow):
 
         self.lab_freq = QtGui.QLabel()
         self.lab_freq.setMinimumWidth(36)
-        self.lab_freq.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.lab_freq.setAlignment(QtCore.Qt.AlignRight |
+                                   QtCore.Qt.AlignVCenter)
         sld_freq = QtGui.QSlider()
         sld_freq.setOrientation(QtCore.Qt.Horizontal)
         sld_freq.setTracking(True)
@@ -98,7 +107,8 @@ class MainWindow(QtGui.QMainWindow):
         act_exit.setStatusTip('Exit application')
         act_exit.triggered.connect(QtCore.QCoreApplication.instance().quit)
 
-        act_settings = QtGui.QAction(QtGui.QIcon('images/settings.png'), '&Settings', self)
+        act_settings = QtGui.QAction(QtGui.QIcon('images/settings.png'),
+                                     '&Settings', self)
         act_settings.setShortcut('Ctrl+S')
         act_settings.setStatusTip('Configure FlyFi')
         act_settings.triggered.connect(self.settingswindow.show)
@@ -108,15 +118,22 @@ class MainWindow(QtGui.QMainWindow):
         file_menu.addAction(act_settings)
         file_menu.addAction(act_exit)
 
-        self.toolbar = self.addToolBar('Toolbar')
-        self.toolbar.addAction(act_settings)
-        self.toolbar.addAction(act_exit)
+        toolbar = self.addToolBar('Toolbar')
+        toolbar.addAction(act_settings)
+        toolbar.addAction(act_exit)
 
     def center(self):
+        """
+        center the window on the screen
+        """
         frame_geo = self.frameGeometry()
         desktop_center = QtGui.QDesktopWidget().availableGeometry().center()
         frame_geo.moveCenter(desktop_center)
         self.move(frame_geo.topLeft())
 
     def pb_play_pressed(self):
-        self.fo.play_tone(self.spb_channel.value(), int(self.lab_freq.text(), 10))
+        """
+        send the current settings to floppy out and play the given tone
+        """
+        self.fout.play_tone(self.spb_channel.value(),
+                          int(self.lab_freq.text(), 10))

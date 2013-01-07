@@ -40,12 +40,20 @@ FlyFi - Floppy-Fidelity
 
 from PySide import QtGui, QtCore
 import serial.tools.list_ports
+import ConfigParser
+import os
 
 
 class SettingsWindow(QtGui.QMainWindow):
 
     def __init__(self):
         super(SettingsWindow, self).__init__()
+
+        self.config = ConfigParser.SafeConfigParser()
+        if os.path.exists('~/.flyfirc') and os.path.isfile('~/.flyfirc'):
+            self.config.read('~/.flyfirc')
+        else:
+            self.config.read('/etc/flyfirc')
 
         self.init_ui()
         self.update_serial_ports()
@@ -101,3 +109,23 @@ class SettingsWindow(QtGui.QMainWindow):
             self.channel_table.cellWidget(row, 1).addItems(self.serialports)
             #TODO: if config.channel.serial in self.serialports: select config.channel.serial
         self.channel_table.resizeColumnsToContents()
+
+    def save_config(self):
+        # When adding sections or items, add them in the reverse order of
+        # how you want them to be displayed in the actual file.
+        # In addition, please note that using RawConfigParser's and the raw
+        # mode of ConfigParser's respective set functions, you can assign
+        # non-string values to keys internally, but will receive an error
+        # when attempting to write to a file or when you get it in non-raw
+        # mode. SafeConfigParser does not allow such assignments to take place.
+        self.config.add_section('Section1')
+        self.config.set('Section1', 'an_int', '15')
+        self.config.set('Section1', 'a_bool', 'true')
+        self.config.set('Section1', 'a_float', '3.1415')
+        self.config.set('Section1', 'baz', 'fun')
+        self.config.set('Section1', 'bar', 'Python')
+        self.config.set('Section1', 'foo', '%(bar)s is %(baz)s!')
+
+        # Writing our configuration file to 'example.cfg'
+        with open('~/.flyfirc', 'wb') as configfile:
+            self.config.write(configfile)
