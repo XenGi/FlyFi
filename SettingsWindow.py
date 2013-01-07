@@ -92,12 +92,12 @@ class SettingsWindow(QtGui.QMainWindow):
 
     def update_serial_ports(self):
         ports = serial.tools.list_ports.comports()
-        self.serialports = []
+        serialports = []
         for port in ports:
             if port[2] != 'n/a':
-                self.serialports.append(port[0])
+                serialports.append(port[0])
         for row in range(0, 16):
             self.channel_table.cellWidget(row, 1).clear()
-            self.channel_table.cellWidget(row, 1).addItems(self.serialports)
-            #TODO: if config.channel.serial in self.serialports: select config.channel.serial
+            self.channel_table.cellWidget(row, 1).addItems(serialports)
+            #TODO: if config.channel.serial in serialports: select config.channel.serial
         self.channel_table.resizeColumnsToContents()
