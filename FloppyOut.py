@@ -78,12 +78,7 @@ class FloppyOut():
 
 
 
-    def play_tone(self, channel, frequency):
-        #TOOO: quick and dirty hack! Später wieder entfernen!        
-        self.map_serial_port_to_channel(1, "/dev/ttyUSB0")
-        self.map_serial_port_to_channel(2, "/dev/ttyUSB0")
-        self.connect_serial_ports()
-
+    def play_tone(self, channel, frequency): 
         if channel < 1 or channel > self.MAX_CHANNELS:
             raise Exception("channel '%d' out of range. it has to be between 1 - %d" % (channel, self.MAX_CHANNELS) )
 

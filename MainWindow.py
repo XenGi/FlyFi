@@ -59,6 +59,11 @@ class MainWindow(QtGui.QMainWindow):
 
         self.init_ui()
 
+
+    def setFloatNum(self, float_num):
+        self.lab_freq.setText( "%.2f" % (float_num / 100.0) )
+
+
     def init_ui(self):
         """
         create the gui and connect actions
@@ -72,17 +77,18 @@ class MainWindow(QtGui.QMainWindow):
         grid = QtGui.QGridLayout()
 
         self.lab_freq = QtGui.QLabel()
-        self.lab_freq.setMinimumWidth(36)
+        self.lab_freq.setMinimumWidth(50)
         self.lab_freq.setAlignment(QtCore.Qt.AlignRight |
                                    QtCore.Qt.AlignVCenter)
         sld_freq = QtGui.QSlider()
         sld_freq.setOrientation(QtCore.Qt.Horizontal)
         sld_freq.setTracking(True)
-        sld_freq.setRange(0, 800)
-        sld_freq.valueChanged.connect(self.lab_freq.setNum)
+        sld_freq.setRange(0, 80000)
+        sld_freq.valueChanged.connect(self.setFloatNum)
         sld_freq.setPageStep(1)
-        sld_freq.setSingleStep(1)
-        self.lab_freq.setNum(sld_freq.value())
+        sld_freq.setSingleStep(1) 
+
+        self.setFloatNum(sld_freq.value())
         self.spb_channel = QtGui.QSpinBox()
         self.spb_channel.setRange(1, 16)
         pb_play = QtGui.QPushButton('Play')
@@ -122,6 +128,13 @@ class MainWindow(QtGui.QMainWindow):
         toolbar.addAction(act_settings)
         toolbar.addAction(act_exit)
 
+
+        #TOOO: quick and dirty hack! Später wieder entfernen!        
+        self.fout.map_serial_port_to_channel(1, "/dev/ttyUSB0")
+        self.fout.map_serial_port_to_channel(2, "/dev/ttyUSB0")
+        self.fout.connect_serial_ports()
+
+
     def center(self):
         """
         center the window on the screen
@@ -136,4 +149,4 @@ class MainWindow(QtGui.QMainWindow):
         send the current settings to floppy out and play the given tone
         """
         self.fout.play_tone(self.spb_channel.value(),
-                          int(self.lab_freq.text(), 10))
+                          int(self.lab_freq.text(), 10)) # todo: split presentation layer from datamodel(?)
