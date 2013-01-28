@@ -50,10 +50,19 @@ class SettingsWindow(QtGui.QMainWindow):
         super(SettingsWindow, self).__init__()
 
         self.config = ConfigParser.SafeConfigParser()
-        if os.path.exists('~/.flyfirc') and os.path.isfile('~/.flyfirc'):
-            self.config.read('~/.flyfirc')
-        else:
-            self.config.read('/etc/flyfirc')
+        #if os.path.isfile(os.path.expanduser('~/.flyfirc')):
+        #    self.config.read(os.path.expanduser('~/.flyfirc'))
+        #elif os.path.isfile('/etc/flyfirc'):
+        #    self.config.read('/etc/flyfirc')
+        #    fp = open(os.path.expanduser('~/.flyfirc'), 'w')
+        #    self.config.write(fp)
+        #    fp.close()
+        #else:
+            # only needed in dev env
+        self.config.read(os.path.join(os.getcwd(), 'flyfirc'))
+        fp = open(os.path.expanduser('~/.flyfirc'), 'w')
+        self.config.write(fp)
+        fp.close()
 
         self.init_ui()
         self.update_serial_ports()
@@ -74,8 +83,6 @@ class SettingsWindow(QtGui.QMainWindow):
                                               'Serial port'])
         for row in range(0, 16):
             self.channel_table.setCellWidget(row, 0, QtGui.QCheckBox())
-            #TODO: load from config
-            self.channel_table.cellWidget(row, 0).setCheckState(QtCore.Qt.Checked)
             self.channel_table.setCellWidget(row, 1, QtGui.QComboBox())
         pb_update_serial = QtGui.QPushButton('Reload serial ports')
         pb_update_serial.clicked.connect(self.update_serial_ports)
@@ -107,25 +114,33 @@ class SettingsWindow(QtGui.QMainWindow):
         for row in range(0, 16):
             self.channel_table.cellWidget(row, 1).clear()
             self.channel_table.cellWidget(row, 1).addItems(serialports)
-            #TODO: if config.channel.serial in serialports: select config.channel.serial
         self.channel_table.resizeColumnsToContents()
 
     def save_config(self):
-        # When adding sections or items, add them in the reverse order of
-        # how you want them to be displayed in the actual file.
-        # In addition, please note that using RawConfigParser's and the raw
-        # mode of ConfigParser's respective set functions, you can assign
-        # non-string values to keys internally, but will receive an error
-        # when attempting to write to a file or when you get it in non-raw
-        # mode. SafeConfigParser does not allow such assignments to take place.
-        self.config.add_section('Section1')
-        self.config.set('Section1', 'an_int', '15')
-        self.config.set('Section1', 'a_bool', 'true')
-        self.config.set('Section1', 'a_float', '3.1415')
-        self.config.set('Section1', 'baz', 'fun')
-        self.config.set('Section1', 'bar', 'Python')
-        self.config.set('Section1', 'foo', '%(bar)s is %(baz)s!')
+        self.config.add_section('Channel1')
+        self.config.set('Channel1', 'enabled', str(self.channel_table.cellWidget(0, 0).Value))
+        self.config.set('Channel1', 'serialport', str(self.channel_table.cellWidget(0, 1).Value))
+        self.config.add_section('Channel2')
+        self.config.set('Channel2', 'enabled', str(self.channel_table.cellWidget(1, 0).Value))
+        self.config.set('Channel2', 'serialport', str(self.channel_table.cellWidget(1, 1).Value))
 
-        # Writing our configuration file to 'example.cfg'
         with open('~/.flyfirc', 'wb') as configfile:
             self.config.write(configfile)
+
+    def load_config(self):
+        ports = serial.tools.list_ports.comports()
+        serialports = []
+        for port in ports:
+            if port[2] != 'n/a':
+                serialports.append(port[0])
+        for row in range(0, 16):
+            # load channel active
+            if self.config.getboolean('Channel'+ str(row + 1), 'enabled'):
+                self.channel_table.cellWidget(row, 0).setCheckState(QtCore.Qt.Checked)
+            else:
+                self.channel_table.cellWidget(row, 0).setCheckState(QtCore.Qt.Unchecked)
+            # load serial ports
+            if self.config.get('Channel' + str(row + 1), 'serialport') in serialports:
+                    index = self.channel_table.cellWidget(row, 1).findData(self.config.get('Channel' + str(row + 1), 'serialport'))
+                    if not index == -1:
+                        self.channel_table.cellWidget(row, 1).setCurrentIndex(index)
