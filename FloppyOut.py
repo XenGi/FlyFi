@@ -64,25 +64,47 @@ class FloppyOut():
 #        for i in range(self.MAX_CHANNELS):
 
 # TODO: Verschieben in onConnect()
-#            self._channel_ports[i].baudrate = 9600
-#            self._channel_ports[i].parity = serial.PARITY_NONE
-#            self._channel_ports[i].stopbits = serial.STOPBITS_ONE
-#            self._channel_ports[i].bytesize = serial.EIGHTBITS
 
 
-    def set_serial_port_list(serial_port_list):
-        _serial_ports = serial_port_list
+    def set_serial_port_list(self, serial_port_list):
+
+        baudrate = 9600
+        parity = serial.PARITY_NONE
+        stopbits = serial.STOPBITS_ONE
+        bytesize = serial.EIGHTBITS
+
+        self._serial_ports = []
+
+        for port_str in serial_port_list:
+            ser = serial.Serial()
+
+            ser.port = port_str
+            ser.baudrate = baudrate
+            ser.timeout = 0
+            ser.parity = parity
+            ser.bytesize = bytesize
+
+            self._serial_ports.append(ser)
 
 
-    def connect_serial_port(port_id):
+    def connect_serial_port(self, port_id):
         self._serial_ports[port_id].open()
 
-    def disconnect_serial_port(port_id):
+    def disconnect_serial_port(self, port_id):
         self._serial_ports[port_id].close()
 
     
     def map_serial_port_to_channel(self, channel, serial_port_id):
 	self._channel_ports[channel - 1].port = self._serial_ports[serial_port_id]
+
+    def reset(self):
+        for port in self._serial_ports:
+            if port.isOpen():
+                port.close()
+
+        self._channel_ports = []
+        self._serial_ports = []
+
 
 
 

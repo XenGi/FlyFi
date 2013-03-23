@@ -55,7 +55,7 @@ class MainWindow(QtGui.QMainWindow):
         super(MainWindow, self).__init__()
 
         self.fout = FloppyOut()
-        self.settingswindow = SettingsWindow()
+        self.settingswindow = SettingsWindow(self.fout)
         
         self.init_ui()
 

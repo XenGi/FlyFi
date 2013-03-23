@@ -42,12 +42,13 @@ from PySide import QtGui, QtCore
 import serial.tools.list_ports
 import ConfigParser
 import os
-
+import FloppyOut
 
 class SettingsWindow(QtGui.QMainWindow):
-    def __init__(self):
+    def __init__(self, floppy_out):
         super(SettingsWindow, self).__init__()
 
+        self.fout = floppy_out
         self.config = ConfigParser.SafeConfigParser()
         #if os.path.isfile(os.path.expanduser('~/.flyfirc')):
         #    self.config.read(os.path.expanduser('~/.flyfirc'))
@@ -90,6 +91,7 @@ class SettingsWindow(QtGui.QMainWindow):
         pb_update_serial = QtGui.QPushButton('Reload serial ports')
         pb_update_serial.clicked.connect(self.update_serial_ports)
 
+                
         channel_vbox.addWidget(self.channel_table)
         tab_channel.setLayout(channel_vbox)
 
@@ -142,15 +144,24 @@ class SettingsWindow(QtGui.QMainWindow):
                 serialports.append(port[0])
 
         self.serial_ports_table.setRowCount(len(serialports)) 
- 
-        item_connect_button = QtGui.QPushButton("Connect")
-        item_disconnect_button = QtGui.QPushButton("Disconnect")
 
- 
+        self.fout.reset()
+        self.fout.set_serial_port_list(serialports)     
+
+         
+        self.bg_connect = QtGui.QButtonGroup()                 
+
         for i in range(0, len(serialports)):
+            pb_connect = QtGui.QPushButton("Connect")
+            self.bg_connect.addButton(pb_connect, i)
+                
             self.serial_ports_table.setItem(i, 0, QtGui.QTableWidgetItem(serialports[i]))
-            self.serial_ports_table.setCellWidget(i, 1, QtGui.QPushButton("Connect"))
+            self.serial_ports_table.setCellWidget(i, 1, pb_connect)
 
+        QtCore.QObject.connect(self.bg_connect, QtCore.SIGNAL("buttonClicked(int)"), self.connect_pressed )
+
+
+                
 
 
 
@@ -182,3 +193,20 @@ class SettingsWindow(QtGui.QMainWindow):
                     index = self.channel_table.cellWidget(row, 1).findData(self.config.get('Channel' + str(row + 1), 'serialport'))
                     if not index == -1:
                         self.channel_table.cellWidget(row, 1).setCurrentIndex(index)
+
+
+    def connect_pressed(self, button_id):
+        sender_button = self.sender().button(button_id)       
+    
+           
+        if sender_button.text() == "Connect":
+            self.fout.connect_serial_port(button_id)
+            sender_button.setText("Disconnect")
+        else:
+            self.fout.disconnect_serial_port(button_id)
+            sender_button.setText("Connect")
+
+
+
+
+     
