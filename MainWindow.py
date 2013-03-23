@@ -54,9 +54,9 @@ class MainWindow(QtGui.QMainWindow):
         """
         super(MainWindow, self).__init__()
 
-        self.settingswindow = SettingsWindow()
         self.fout = FloppyOut()
-
+        self.settingswindow = SettingsWindow()
+        
         self.init_ui()
 
 
@@ -94,6 +94,10 @@ class MainWindow(QtGui.QMainWindow):
         pb_play = QtGui.QPushButton('Play')
         pb_play.clicked.connect(self.pb_play_pressed)
         pb_play.resize(pb_play.sizeHint())
+        pb_stop = QtGui.QPushButton('Stop')
+        pb_stop.clicked.connect(self.pb_stop_pressed)
+        pb_stop.resize(pb_stop.sizeHint())
+
 
         grid.addWidget(QtGui.QLabel('Frequency:'), 0, 0)
         grid.addWidget(sld_freq, 0, 1)
@@ -101,7 +105,8 @@ class MainWindow(QtGui.QMainWindow):
         grid.addWidget(QtGui.QLabel('Hz'), 0, 3)
         grid.addWidget(QtGui.QLabel('Channel:'), 1, 0)
         grid.addWidget(self.spb_channel, 1, 1, 1, 3)
-        grid.addWidget(pb_play, 2, 0, 1, 4)
+        grid.addWidget(pb_play, 2, 0, 1, 2)
+        grid.addWidget(pb_stop, 1, 0, 2, 2)
 
         centralwidget.setLayout(grid)
         self.setCentralWidget(centralwidget)
@@ -130,9 +135,9 @@ class MainWindow(QtGui.QMainWindow):
 
 
         #TOOO: quick and dirty hack! Später wieder entfernen!        
-        self.fout.map_serial_port_to_channel(1, "/dev/ttyUSB0")
-        self.fout.map_serial_port_to_channel(2, "/dev/ttyUSB0")
-        self.fout.connect_serial_ports()
+        #self.fout.map_serial_port_to_channel(1, "/dev/ttyUSB0")
+        #self.fout.map_serial_port_to_channel(2, "/dev/ttyUSB0")
+        #self.fout.connect_serial_ports()
 
 
     def center(self):
@@ -148,5 +153,10 @@ class MainWindow(QtGui.QMainWindow):
         """
         send the current settings to floppy out and play the given tone
         """
-        self.fout.play_tone(self.spb_channel.value(),
-                          int(self.lab_freq.text(), 10)) # todo: split presentation layer from datamodel(?)
+        self.fout.play_tone(self.spb_channel.value(), float(self.lab_freq.text())) # todo: split presentation layer from datamodel(?)
+
+    def pb_stop_pressed(self):
+        """
+        stop playing the current tone on the floppy
+        """
+        self.fout.play_tone(self.spb_channel.value(), 0) # playing a tone with 0hz will stop the floppy motor

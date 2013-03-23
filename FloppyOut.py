@@ -54,27 +54,35 @@ import struct
 
 class FloppyOut():
     def __init__(self):
-        self.MAX_CHANNELS = 2
+        self.MAX_CHANNELS = 16
         self.ARDUINO_RESOLUTION = 40 # the timer of the arduino fires every 40 miliseconds
-        self._channel_ports = [serial.Serial() for i in range(self.MAX_CHANNELS)] # the serial ports which are mapped to each channel
-
-        for i in range(self.MAX_CHANNELS):
-            self._channel_ports[i].baudrate = 9600
-            self._channel_ports[i].parity = serial.PARITY_NONE
-            self._channel_ports[i].stopbits = serial.STOPBITS_ONE
-            self._channel_ports[i].bytesize = serial.EIGHTBITS
+        self._serial_ports = [] # a list of all available serial ports
+        self._channel_ports = [] # the serial ports which are mapped to each channel
 
 
-    def connect_serial_ports(self):
-        for i in range(self.MAX_CHANNELS):
-            self._channel_ports[i].open()
+#       self._channel_ports = [serial.Serial() for i in range(self.MAX_CHANNELS)] # the serial ports which are mapped to each channel
+#        for i in range(self.MAX_CHANNELS):
 
-    def disconnect_serial_ports(self):
-        for i in range(self.MAX_CHANNELS):
-            self._channel_ports[i].close()
+# TODO: Verschieben in onConnect()
+#            self._channel_ports[i].baudrate = 9600
+#            self._channel_ports[i].parity = serial.PARITY_NONE
+#            self._channel_ports[i].stopbits = serial.STOPBITS_ONE
+#            self._channel_ports[i].bytesize = serial.EIGHTBITS
 
-    def map_serial_port_to_channel(self, channel, serial_port):
-	self._channel_ports[channel - 1].port = serial_port
+
+    def set_serial_port_list(serial_port_list):
+        _serial_ports = serial_port_list
+
+
+    def connect_serial_port(port_id):
+        self._serial_ports[port_id].open()
+
+    def disconnect_serial_port(port_id):
+        self._serial_ports[port_id].close()
+
+    
+    def map_serial_port_to_channel(self, channel, serial_port_id):
+	self._channel_ports[channel - 1].port = self._serial_ports[serial_port_id]
 
 
 
@@ -83,7 +91,7 @@ class FloppyOut():
             raise Exception("channel '%d' out of range. it has to be between 1 - %d" % (channel, self.MAX_CHANNELS) )
 
         if frequency != 0:
-            half_period = (1000000 / frequency) / (2 * self.ARDUINO_RESOLUTION) # period in microseconds
+            half_period = (1000000.0 / frequency) / (2.0 * self.ARDUINO_RESOLUTION) # period in microseconds
         else:
             half_period = 0
 

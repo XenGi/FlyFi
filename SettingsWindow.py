@@ -45,7 +45,6 @@ import os
 
 
 class SettingsWindow(QtGui.QMainWindow):
-
     def __init__(self):
         super(SettingsWindow, self).__init__()
 
@@ -76,22 +75,38 @@ class SettingsWindow(QtGui.QMainWindow):
         centralwidget = QtGui.QTabWidget()
 
         tab_channel = QtGui.QWidget()
+        tab_serial_ports = QtGui.QWidget()
+
+        # channel tab
         channel_vbox = QtGui.QVBoxLayout()
         self.channel_table = QtGui.QTableWidget(16, 2)
         self.channel_table.cellClicked.connect(self.cell_clicked)
-        self.channel_table.setHorizontalHeaderLabels(['Active',
-                                              'Serial port'])
+        self.channel_table.setHorizontalHeaderLabels(['Active', 'Serial port'])
+
         for row in range(0, 16):
             self.channel_table.setCellWidget(row, 0, QtGui.QCheckBox())
             self.channel_table.setCellWidget(row, 1, QtGui.QComboBox())
+
         pb_update_serial = QtGui.QPushButton('Reload serial ports')
         pb_update_serial.clicked.connect(self.update_serial_ports)
 
         channel_vbox.addWidget(self.channel_table)
-        channel_vbox.addWidget(pb_update_serial)
         tab_channel.setLayout(channel_vbox)
 
+
+        # serial ports tab
+	serial_ports_vbox = QtGui.QVBoxLayout()
+        self.serial_ports_table = QtGui.QTableWidget(0, 2)
+        self.serial_ports_table.cellClicked.connect(self.cell_clicked)
+        self.serial_ports_table.setHorizontalHeaderLabels(['Serial Port', 'Connection'])
+        
+        serial_ports_vbox.addWidget(self.serial_ports_table)
+        tab_serial_ports.setLayout(serial_ports_vbox)
+        
         centralwidget.addTab(tab_channel, "Channels")
+        centralwidget.addTab(tab_serial_ports, "Serial Ports")
+        serial_ports_vbox.addWidget(pb_update_serial)
+
 
         self.setCentralWidget(centralwidget)
 
@@ -105,7 +120,8 @@ class SettingsWindow(QtGui.QMainWindow):
         if col == 0:
             self.channel_table.cellWidget(row, 0).toggle()
 
-    def update_serial_ports(self):
+    # old version
+    def _update_serial_ports_old(self):
         ports = serial.tools.list_ports.comports()
         serialports = []
         for port in ports:
@@ -115,6 +131,28 @@ class SettingsWindow(QtGui.QMainWindow):
             self.channel_table.cellWidget(row, 1).clear()
             self.channel_table.cellWidget(row, 1).addItems(serialports)
         self.channel_table.resizeColumnsToContents()
+
+    def update_serial_ports(self):
+        ports = serial.tools.list_ports.comports()
+        port_count = len(ports)
+
+        serialports = []
+        for port in ports:
+            if port[2] != 'n/a':
+                serialports.append(port[0])
+
+        self.serial_ports_table.setRowCount(len(serialports)) 
+ 
+        item_connect_button = QtGui.QPushButton("Connect")
+        item_disconnect_button = QtGui.QPushButton("Disconnect")
+
+ 
+        for i in range(0, len(serialports)):
+            self.serial_ports_table.setItem(i, 0, QtGui.QTableWidgetItem(serialports[i]))
+            self.serial_ports_table.setCellWidget(i, 1, QtGui.QPushButton("Connect"))
+
+
+
 
     def save_config(self):
         self.config.add_section('Channel1')
