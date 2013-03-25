@@ -53,18 +53,26 @@ import struct
 
 
 class FloppyOut():
+
+    class MidiChannel():
+        def __init__(self, active, floppy_channel, serial_port):
+            self.active = active
+            self.floppy_channel = floppy_channel
+            self.serial_port = serial_port
+
+
+
     def __init__(self):
         self.MAX_CHANNELS = 16
         self.ARDUINO_RESOLUTION = 40 # the timer of the arduino fires every 40 miliseconds
         self._serial_ports = [] # a list of all available serial ports
-        self._channel_ports = [] # the serial ports which are mapped to each channel
+        self.midi_channels = []
+  
+        # show channels
+        for i in range(1, self.MAX_CHANNELS + 1):
+            self.midi_channels.append(self.MidiChannel(True, i, 1))
 
-
-#       self._channel_ports = [serial.Serial() for i in range(self.MAX_CHANNELS)] # the serial ports which are mapped to each channel
-#        for i in range(self.MAX_CHANNELS):
-
-# TODO: Verschieben in onConnect()
-
+       
 
     def set_serial_port_list(self, serial_port_list):
 
@@ -93,7 +101,8 @@ class FloppyOut():
     def disconnect_serial_port(self, port_id):
         self._serial_ports[port_id].close()
 
-    
+
+    #todo: remove???    
     def map_serial_port_to_channel(self, channel, serial_port_id):
 	self._channel_ports[channel - 1].port = self._serial_ports[serial_port_id]
 
@@ -108,9 +117,10 @@ class FloppyOut():
 
 
 
-    def play_tone(self, channel, frequency): 
-        if channel < 1 or channel > self.MAX_CHANNELS:
-            raise Exception("channel '%d' out of range. it has to be between 1 - %d" % (channel, self.MAX_CHANNELS) )
+    def play_tone(self, midi_channel, frequency): 
+        if midi_channel < 1 or midi_channel > self.MAX_CHANNELS:
+            raise Exception("channel '%d' out of range. it has to be between 1 - %d" % 
+                                                                 (midi_channel, self.MAX_CHANNELS) )
 
         if frequency != 0:
             half_period = (1000000.0 / frequency) / (2.0 * self.ARDUINO_RESOLUTION) # period in microseconds
@@ -120,10 +130,10 @@ class FloppyOut():
         # build 3 byte data packet for floppy
         # 1: physical_pin (see microcontroller code for further information)
         # 2: half_period
-
-        physical_pin = channel * 2
+ 
+        physical_pin = self.midi_channels[midi_channel - 1].floppy_channel * 2
         data = struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
-        self._channel_ports[channel - 1].write(data)
+        self._serial_ports[self.midi_channels[midi_channel - 1].serial_port - 1].write(data)
 
 
 def main():
