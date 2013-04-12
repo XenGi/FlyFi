@@ -41,8 +41,9 @@ FlyFi - Floppy-Fidelity
 from PySide import QtGui, QtCore
 #import serial.tools.list_ports
 import serial
+import glob
 import ConfigParser
-import os
+import os, platform
 import FloppyOut
 
 class SettingsWindow(QtGui.QMainWindow):
@@ -146,23 +147,36 @@ class SettingsWindow(QtGui.QMainWindow):
     #        self.channel_table.cellWidget(row, 1).addItems(serialports)
     #    self.channel_table.resizeColumnsToContents()
 
+
+    # A function that tries to list serial ports on most common platforms
+    def list_serial_ports(self):
+        system_name = platform.system()
+        if system_name == "Windows": # TODO: dont use system()
+            # Scan for available ports.
+            available = []
+            for i in range(256):
+                try:
+                    s = serial.Serial(i)
+                    available.append(s.portstr)
+                    s.close()
+                except serial.SerialException:
+                    pass
+            return available
+        elif system_name == "Darwin":
+            # Mac
+            return glob.glob('/dev/cu*')
+        else:
+            # Assume Linux or something else
+            return glob.glob('/dev/ttyUSB*')
+
     def update_serial_ports(self):
-        #ports = serial.tools.list_ports.comports()
-        ports = []
-        for i in range(256):
-           try:
-              s = serial.Serial(i)
-              ports.append( (i, s.portstr))
-              s.close()
-           except serial.SerialException:
-               pass
-        
+        ports = self.list_serial_ports()
         port_count = len(ports)
 
         serialports = []
         for port in ports:
             #if port[2] != 'n/a':
-                serialports.append(port[1])
+                serialports.append(port)
 
         self.serial_ports_table.setRowCount(len(serialports)) 
 
