@@ -39,7 +39,8 @@ FlyFi - Floppy-Fidelity
 """
 
 from PySide import QtGui, QtCore
-import serial.tools.list_ports
+#import serial.tools.list_ports
+import serial
 import ConfigParser
 import os
 import FloppyOut
@@ -134,25 +135,34 @@ class SettingsWindow(QtGui.QMainWindow):
             self.channel_table.cellWidget(row, 0).toggle()
 
     # old version
-    def _update_serial_ports_old(self):
-        ports = serial.tools.list_ports.comports()
-        serialports = []
-        for port in ports:
-            if port[2] != 'n/a':
-                serialports.append(port[0])
-        for row in range(0, 16):
-            self.channel_table.cellWidget(row, 1).clear()
-            self.channel_table.cellWidget(row, 1).addItems(serialports)
-        self.channel_table.resizeColumnsToContents()
+    #def _update_serial_ports_old(self):
+    #    ports = serial.tools.list_ports.comports()
+    #    serialports = []
+    #    for port in ports:
+    #        if port[2] != 'n/a':
+    #            serialports.append(port[0])
+    #    for row in range(0, 16):
+    #        self.channel_table.cellWidget(row, 1).clear()
+    #        self.channel_table.cellWidget(row, 1).addItems(serialports)
+    #    self.channel_table.resizeColumnsToContents()
 
     def update_serial_ports(self):
-        ports = serial.tools.list_ports.comports()
+        #ports = serial.tools.list_ports.comports()
+        ports = []
+        for i in range(256):
+           try:
+              s = serial.Serial(i)
+              ports.append( (i, s.portstr))
+              s.close()
+           except serial.SerialException:
+               pass
+        
         port_count = len(ports)
 
         serialports = []
         for port in ports:
-            if port[2] != 'n/a':
-                serialports.append(port[0])
+            #if port[2] != 'n/a':
+                serialports.append(port[1])
 
         self.serial_ports_table.setRowCount(len(serialports)) 
 
