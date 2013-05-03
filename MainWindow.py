@@ -56,7 +56,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.fout = FloppyOut()
         self.settingswindow = SettingsWindow(self.fout)
-        
+         
         self.init_ui()
 
 
@@ -122,7 +122,8 @@ class MainWindow(QtGui.QMainWindow):
                                      '&Settings', self)
         act_settings.setShortcut('Ctrl+S')
         act_settings.setStatusTip('Configure FlyFi')
-        act_settings.triggered.connect(self.settingswindow.show)
+        act_settings.triggered.connect(self.cb_open_settings_window)
+
 
         menubar = self.menuBar()
         file_menu = menubar.addMenu('&File')
@@ -160,3 +161,8 @@ class MainWindow(QtGui.QMainWindow):
         stop playing the current tone on the floppy
         """
         self.fout.play_tone(self.spb_channel.value(), 0) # playing a tone with 0hz will stop the floppy motor
+
+    def cb_open_settings_window(self):
+        self.settingswindow.show()
+        self.settingswindow.cb_update_serial_ports()
+        

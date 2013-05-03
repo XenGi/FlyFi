@@ -46,6 +46,9 @@ import ConfigParser
 import os, platform
 import FloppyOut
 
+#self.settingswindow.cb_update_serial_ports()
+
+
 class SettingsWindow(QtGui.QMainWindow):
     def __init__(self, floppy_out):
         super(SettingsWindow, self).__init__()
@@ -67,10 +70,9 @@ class SettingsWindow(QtGui.QMainWindow):
         fp.close()
 
         self.init_ui()
-        self.update_serial_ports()
-
+        
     def init_ui(self):
-        self.resize(480, 320)
+        self.resize(450, 700)
         self.setWindowTitle('FlyFi - Settings')
         self.setWindowIcon(QtGui.QIcon('images/settings.png'))
         self.center()
@@ -86,6 +88,7 @@ class SettingsWindow(QtGui.QMainWindow):
         self.channel_table.cellClicked.connect(self.cell_clicked)
         self.channel_table.setHorizontalHeaderLabels(['Active', 'Floppychannel', 'Serial Port'])
 
+
         for row in range(0, 16):
             self.channel_table.setCellWidget(row, 0, QtGui.QCheckBox())
             self.channel_table.setCellWidget(row, 1, QtGui.QComboBox())
@@ -96,34 +99,57 @@ class SettingsWindow(QtGui.QMainWindow):
                                    QtCore.Qt.CheckState.Unchecked )
             self.channel_table.cellWidget(row, 1).addItems( [ str(s) for s in range(1, 16 + 1)] )
             self.channel_table.cellWidget(row, 1).setCurrentIndex(self.fout.midi_channels[row].floppy_channel - 1)
+           
+ 
+        
+      
+                    
+        pb_connect_to_serial_ports = QtGui.QPushButton('Connect to serial ports')
+        pb_connect_to_serial_ports.clicked.connect(self.cb_connect_to_serial_ports)
 
-            self.channel_table.cellWidget(row, 2).addItems( [str(s) for s in range(1, 8 + 1)] )
-            self.channel_table.cellWidget(row, 2).setCurrentIndex(self.fout.midi_channels[row].serial_port - 1)
+        pb_update_serial_ports = QtGui.QPushButton('Reload serial ports')
+        pb_update_serial_ports.clicked.connect(self.cb_update_serial_ports)
+        
+        lb_note = QtGui.QLabel('Note: Serial ports which are already in use by another program wont be displayed!')      
+        channel_vbox.addWidget(lb_note)
+        
+        set_all_ports_hbox = QtGui.QHBoxLayout()
+        lb_set_all_ports_to = QtGui.QLabel('Set all floppies to serial port:')
+        self.cbx_set_all_ports = QtGui.QComboBox()
+        pb_set_all_ports = QtGui.QPushButton('ok')
+        set_all_ports_hbox.addWidget(lb_set_all_ports_to)
+        set_all_ports_hbox.addWidget(self.cbx_set_all_ports)        
+        set_all_ports_hbox.addWidget(pb_set_all_ports)
+        pb_set_all_ports.clicked.connect(self.cb_set_all_serial_ports)
 
-            
-        pb_update_serial = QtGui.QPushButton('Reload serial ports')
-        pb_update_serial.clicked.connect(self.update_serial_ports)
 
-                
+        channel_vbox.addLayout(set_all_ports_hbox)
         channel_vbox.addWidget(self.channel_table)
+        channel_vbox.addWidget(pb_connect_to_serial_ports)
+        channel_vbox.addWidget(pb_update_serial_ports)
+
         tab_channel.setLayout(channel_vbox)
 
+        
 
-        # serial ports tab
-	serial_ports_vbox = QtGui.QVBoxLayout()
-        self.serial_ports_table = QtGui.QTableWidget(0, 2)
-        self.serial_ports_table.setHorizontalHeaderLabels(['Serial Port', 'Connection'])
-        serial_ports_vbox.addWidget(self.serial_ports_table)
 
-        centralwidget.addTab(tab_channel, "Channels")
-        centralwidget.addTab(tab_serial_ports, "Serial Ports")
+        # benchmark tab
+	benchmark_vbox = QtGui.QVBoxLayout()
+        lb_note = QtGui.QLabel('Todo: Floppies will be tested here!')
+        benchmark_vbox.addWidget(lb_note)
 
-              
-        serial_ports_vbox.addWidget(pb_update_serial)
-        self.serial_ports_table.cellClicked.connect(self.cell_clicked)                
-        tab_serial_ports.setLayout(serial_ports_vbox)
+#        self.serial_ports_table = QtGui.QTableWidget(0, 2)
+#        self.serial_ports_table.setHorizontalHeaderLabels(['Serial Port', 'Connection'])
+#        self.serial_ports_table.cellClicked.connect(self.cell_clicked)                
+#        tab_serial_ports.setLayout(serial_ports_vbox)
 
+
+        # create tabs
+        centralwidget.addTab(tab_channel, "MIDI Channels")
+        centralwidget.addTab(tab_serial_ports, "Benchmark")
+ 
         self.setCentralWidget(centralwidget)
+        
 
     def center(self):
         frame_geo = self.frameGeometry()
@@ -135,19 +161,7 @@ class SettingsWindow(QtGui.QMainWindow):
         if col == 0:
             self.channel_table.cellWidget(row, 0).toggle()
 
-    # old version
-    #def _update_serial_ports_old(self):
-    #    ports = serial.tools.list_ports.comports()
-    #    serialports = []
-    #    for port in ports:
-    #        if port[2] != 'n/a':
-    #            serialports.append(port[0])
-    #    for row in range(0, 16):
-    #        self.channel_table.cellWidget(row, 1).clear()
-    #        self.channel_table.cellWidget(row, 1).addItems(serialports)
-    #    self.channel_table.resizeColumnsToContents()
-
-
+   
     # A function that tries to list serial ports on most common platforms
     def list_serial_ports(self):
         system_name = platform.system()
@@ -169,33 +183,32 @@ class SettingsWindow(QtGui.QMainWindow):
             # Assume Linux or something else
             return glob.glob('/dev/ttyUSB*')
 
-    def update_serial_ports(self):
+    def cb_update_serial_ports(self):
         ports = self.list_serial_ports()
         port_count = len(ports)
 
         serialports = []
         for port in ports:
-            #if port[2] != 'n/a':
-                serialports.append(port)
+            serialports.append(port)
 
-        self.serial_ports_table.setRowCount(len(serialports)) 
+        #self.serial_ports_table.setRowCount(len(serialports))
 
-        self.fout.reset()
-        self.fout.set_serial_port_list(serialports)     
+#       self.fout.reset()
+#       self.fout.set_serial_port_list(serialports)
+ 
+        for row in range(0, 16):
+            self.channel_table.cellWidget(row, 2).clear()
+            self.channel_table.cellWidget(row, 2).addItems( [ str(s) for s in serialports ] )
+            self.cbx_set_all_ports.clear()
+            self.cbx_set_all_ports.addItems( [ str(s) for s in serialports ] )
+     
+        self.channel_table.resizeColumnsToContents()
+ 
+        #QtCore.QObject.connect(self.bg_connect, QtCore.SIGNAL("buttonClicked(int)"), self.connect_pressed )
 
-         
-        self.bg_connect = QtGui.QButtonGroup()                 
 
-        for i in range(0, len(serialports)):
-            pb_connect = QtGui.QPushButton("Connect")
-            self.bg_connect.addButton(pb_connect, i)
-                
-            self.serial_ports_table.setItem(i, 0, QtGui.QTableWidgetItem(serialports[i]))
-            self.serial_ports_table.setCellWidget(i, 1, pb_connect)
-
-
-        QtCore.QObject.connect(self.bg_connect, QtCore.SIGNAL("buttonClicked(int)"), self.connect_pressed )
-
+    def cb_connect_to_serial_ports(self):
+        pass
 
                 
 
@@ -243,6 +256,12 @@ class SettingsWindow(QtGui.QMainWindow):
         else:
             self.fout.disconnect_serial_port(button_id)
             sender_button.setText("Connect")
+
+
+    def cb_set_all_serial_ports(self):
+        for row in range(0, 16): 
+            self.channel_table.cellWidget(row, 2).setCurrentIndex(self.cbx_set_all_ports.currentIndex())
+
 
 
     def channel_mapping_changed(self, combobox_id):
