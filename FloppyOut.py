@@ -66,37 +66,34 @@ class FloppyOut():
         self.ARDUINO_RESOLUTION = 40 # the timer of the arduino fires every 40 miliseconds
         self.BAUDRATE = 9600
         self.midi_channels = []
-  
+        self._used_serial_ports = {}
+		
         # TODO: Load mappings from a settings file here
         for i in range(1, self.MAX_CHANNELS + 1):
             self.midi_channels.append(self.MidiChannel(True, i, None))
 
 
-    def configure_midi_channel(self, midi_channel, active, floppy_channel, serial_port):
+    def configure_midi_channel(self, midi_channel, active, floppy_channel, port_str):
         self.midi_channels[midi_channel - 1].active = active
         self.midi_channels[midi_channel - 1].floppy_channel = floppy_channel
-        self.midi_channels[midi_channel - 1].serial_port = self._create_serial_port(serial_port, self.BAUDRATE)
+        self.midi_channels[midi_channel - 1].serial_port = port_str
 
 
-    def connect_to_serial_ports(self):
-        print "debug: floppy out: connecting..."
-
-        used_serial_ports = set()
+    def connect_to_serial_ports(self):		
+        self._used_serial_ports.clear()
 
         for i in range(0, self.MAX_CHANNELS):
-            used_serial_ports.add(self.midi_channels[i].serial_port)
+            ser = self._create_serial_port(self.midi_channels[i].serial_port, self.BAUDRATE)
+            self._used_serial_ports[self.midi_channels[i].serial_port] = ser
+			
+        for port in self._used_serial_ports.iterkeys():
+            print "debug: trying to connect to: %s" % port
+            self._used_serial_ports[port].open()
 
-        for port in used_serial_ports:
-            port.open()
-
+            
     def close_serial_ports(self):
-        used_serial_ports = set()
-
-        for i in range(0, self.MAX_CHANNELS):
-            used_serial_ports.add(self.mini_channels[i].serial_port)
-
-        for port in range(0, len(used_serial_ports)):
-            port.close()
+        for port in used_serial_ports:
+		    port.close()
 
         
 
@@ -128,9 +125,9 @@ class FloppyOut():
         # 1: physical_pin (see microcontroller code for further information)
         # 2: half_period
  
-        physical_pin = self.midi_channels[midi_channel - 1].floppy_channel * 2
+        physical_pin = (self.midi_channels[midi_channel - 1].floppy_channel - 1) * 2
         data = struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
-        self.midi_channels[midi_channel - 1].serial_port.write(data)
+        self._used_serial_ports[self.midi_channels[midi_channel - 1].serial_port].write(data)
 
 
 def main():
