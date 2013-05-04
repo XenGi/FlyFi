@@ -170,7 +170,7 @@ class SettingsWindow(QtGui.QMainWindow):
                     available.append(s.portstr)
                     s.close()
                 except serial.SerialException:
-                    pass
+                    print "beim listing gabs ne exception!"
             return available
         elif system_name == "Darwin":
             # Mac
@@ -180,12 +180,7 @@ class SettingsWindow(QtGui.QMainWindow):
             return glob.glob('/dev/ttyUSB*')
 
     def cb_update_serial_ports(self):
-        ports = self.list_serial_ports()
-       # port_count = len(ports)
-
-        serialports = []
-        for port in ports:
-            serialports.append(port)
+        serialports = self.list_serial_ports()
 
         items = None
         if serialports != []:
