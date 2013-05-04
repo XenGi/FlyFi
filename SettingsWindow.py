@@ -72,13 +72,12 @@ class SettingsWindow(QtGui.QMainWindow):
         self.init_ui()
         
     def init_ui(self):
-        self.resize(450, 700)
+        self.resize(650, 700)
         self.setWindowTitle('FlyFi - Settings')
         self.setWindowIcon(QtGui.QIcon('images/settings.png'))
         self.center()
 
         centralwidget = QtGui.QTabWidget()
-
         tab_channel = QtGui.QWidget()
         tab_serial_ports = QtGui.QWidget()
 
@@ -100,17 +99,14 @@ class SettingsWindow(QtGui.QMainWindow):
             self.channel_table.cellWidget(row, 1).addItems( [ str(s) for s in range(1, 16 + 1)] )
             self.channel_table.cellWidget(row, 1).setCurrentIndex(self.fout.midi_channels[row].floppy_channel - 1)
            
- 
-        
-      
-                    
-        pb_connect_to_serial_ports = QtGui.QPushButton('Connect to serial ports')
-        pb_connect_to_serial_ports.clicked.connect(self.cb_connect_to_serial_ports)
+                             
+        self.pb_connect_to_serial_ports = QtGui.QPushButton('Connect to selected serial ports')
+        self.pb_connect_to_serial_ports.clicked.connect(self.cb_connect_to_serial_ports)
 
-        pb_update_serial_ports = QtGui.QPushButton('Reload serial ports')
-        pb_update_serial_ports.clicked.connect(self.cb_update_serial_ports)
+        self.pb_update_serial_ports = QtGui.QPushButton('Refresh available serial ports')
+        self.pb_update_serial_ports.clicked.connect(self.cb_update_serial_ports)
         
-        lb_note = QtGui.QLabel('Note: Serial ports which are already in use by another program wont be displayed!')      
+        lb_note = QtGui.QLabel("Note: Serial ports which are already in use by another program won't be dislayed!")      
         channel_vbox.addWidget(lb_note)
         
         set_all_ports_hbox = QtGui.QHBoxLayout()
@@ -125,12 +121,12 @@ class SettingsWindow(QtGui.QMainWindow):
 
         channel_vbox.addLayout(set_all_ports_hbox)
         channel_vbox.addWidget(self.channel_table)
-        channel_vbox.addWidget(pb_connect_to_serial_ports)
-        channel_vbox.addWidget(pb_update_serial_ports)
+        channel_vbox.addWidget(self.pb_connect_to_serial_ports)
+        channel_vbox.addWidget(self.pb_update_serial_ports)
 
         tab_channel.setLayout(channel_vbox)
 
-        
+                
 
 
         # benchmark tab
@@ -185,33 +181,41 @@ class SettingsWindow(QtGui.QMainWindow):
 
     def cb_update_serial_ports(self):
         ports = self.list_serial_ports()
-        port_count = len(ports)
+       # port_count = len(ports)
 
         serialports = []
         for port in ports:
             serialports.append(port)
 
-        #self.serial_ports_table.setRowCount(len(serialports))
-
-#       self.fout.reset()
-#       self.fout.set_serial_port_list(serialports)
- 
+        items = None
+        if serialports != []:
+            items = serialports
+            self.pb_connect_to_serial_ports.setEnabled(True) 
+        else:
+            items = [ "<no serial ports available>" ]
+            self.pb_connect_to_serial_ports.setEnabled(False) 
+  
         for row in range(0, 16):
-            self.channel_table.cellWidget(row, 2).clear()
-            self.channel_table.cellWidget(row, 2).addItems( [ str(s) for s in serialports ] )
             self.cbx_set_all_ports.clear()
-            self.cbx_set_all_ports.addItems( [ str(s) for s in serialports ] )
-     
+            self.channel_table.cellWidget(row, 2).clear()
+            self.cbx_set_all_ports.addItems( items )
+            self.channel_table.cellWidget(row, 2).addItems( items )
+
+            
         self.channel_table.resizeColumnsToContents()
  
-        #QtCore.QObject.connect(self.bg_connect, QtCore.SIGNAL("buttonClicked(int)"), self.connect_pressed )
 
 
     def cb_connect_to_serial_ports(self):
-        pass
+        for row in range(0, 16):
+            active = self.channel_table.cellWidget(row, 0).isChecked()
+            floppy_channel = int(self.channel_table.cellWidget(row, 1).currentText())
+            port_str = self.channel_table.cellWidget(row, 2).currentText()
+            self.fout.configure_midi_channel(row, active, floppy_channel, port_str)
 
-                
+        self.fout.connect_to_serial_ports()                
 
+        # TODO: Gray out stuff
 
 
     def save_config(self):

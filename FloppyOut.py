@@ -61,59 +61,56 @@ class FloppyOut():
             self.serial_port = serial_port
 
 
-
     def __init__(self):
         self.MAX_CHANNELS = 16
         self.ARDUINO_RESOLUTION = 40 # the timer of the arduino fires every 40 miliseconds
-        self._serial_ports = [] # a list of all available serial ports
+        self.BAUDRATE = 9600
         self.midi_channels = []
   
-        # show channels
+        # TODO: Load mappings from a settings file here
         for i in range(1, self.MAX_CHANNELS + 1):
-            self.midi_channels.append(self.MidiChannel(True, i, 1))
-
-       
-
-    def set_serial_port_list(self, serial_port_list):
-
-        baudrate = 9600
-        parity = serial.PARITY_NONE
-        stopbits = serial.STOPBITS_ONE
-        bytesize = serial.EIGHTBITS
-
-        self._serial_ports = []
-
-        for port_str in serial_port_list:
-            ser = serial.Serial()
-
-            ser.port = port_str
-            ser.baudrate = baudrate
-            ser.timeout = 0
-            ser.parity = parity
-            ser.bytesize = bytesize
-
-            self._serial_ports.append(ser)
+            self.midi_channels.append(self.MidiChannel(True, i, None))
 
 
-    def connect_serial_port(self, port_id):
-        self._serial_ports[port_id].open()
+    def configure_midi_channel(self, midi_channel, active, floppy_channel, serial_port):
+        self.midi_channels[midi_channel - 1].active = active
+        self.midi_channels[midi_channel - 1].floppy_channel = floppy_channel
+        self.midi_channels[midi_channel - 1].serial_port = self._create_serial_port(serial_port, self.BAUDRATE)
 
-    def disconnect_serial_port(self, port_id):
-        self._serial_ports[port_id].close()
 
+    def connect_to_serial_ports(self):
+        print "debug: floppy out: connecting..."
 
-    #todo: remove???    
-    def map_serial_port_to_channel(self, channel, serial_port_id):
-	self._channel_ports[channel - 1].port = self._serial_ports[serial_port_id]
+        used_serial_ports = set()
 
-    def reset(self):
-        for port in self._serial_ports:
-            if port.isOpen():
-                port.close()
+        for i in range(0, self.MAX_CHANNELS):
+            used_serial_ports.add(self.midi_channels[i].serial_port)
 
-        self._channel_ports = []
-        self._serial_ports = []
+        for port in used_serial_ports:
+            port.open()
 
+    def close_serial_ports(self):
+        used_serial_ports = set()
+
+        for i in range(0, self.MAX_CHANNELS):
+            used_serial_ports.add(self.mini_channels[i].serial_port)
+
+        for port in range(0, len(used_serial_ports)):
+            port.close()
+
+        
+
+    def _create_serial_port(self, port_str, baudrate):
+        ser = serial.Serial()
+
+        ser.port = port_str
+        ser.baudrate = baudrate
+        ser.timeout = 0
+        ser.parity = serial.PARITY_NONE
+        ser.stopbits = serial.STOPBITS_ONE
+        ser.bytesize = serial.EIGHTBITS
+
+        return ser
 
 
 
@@ -133,7 +130,7 @@ class FloppyOut():
  
         physical_pin = self.midi_channels[midi_channel - 1].floppy_channel * 2
         data = struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
-        self._serial_ports[self.midi_channels[midi_channel - 1].serial_port - 1].write(data)
+        self.midi_channels[midi_channel - 1].serial_port.write(data)
 
 
 def main():
