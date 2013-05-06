@@ -50,9 +50,10 @@ import FloppyOut
 
 
 class SettingsWindow(QtGui.QMainWindow):
-    def __init__(self, floppy_out):
+    def __init__(self, midi_in, floppy_out):
         super(SettingsWindow, self).__init__()
 
+        self.midi_in = midi_in
         self.fout = floppy_out
         self.config = ConfigParser.SafeConfigParser()
         #if os.path.isfile(os.path.expanduser('~/.flyfirc')):
@@ -72,7 +73,7 @@ class SettingsWindow(QtGui.QMainWindow):
         self.init_ui()
         
     def init_ui(self):
-        self.resize(650, 700)
+        self.resize(650, 680)
         self.setWindowTitle('FlyFi - Settings')
         self.setWindowIcon(QtGui.QIcon('images/settings.png'))
         self.center()
@@ -170,7 +171,7 @@ class SettingsWindow(QtGui.QMainWindow):
                     available.append(s.portstr)
                     s.close()
                 except serial.SerialException:
-                    print "beim listing gabs ne exception!"
+                    pass # if no serial port is found this exception will be thrown which can be safely ignored
             return available
         elif system_name == "Darwin":
             # Mac

@@ -40,6 +40,7 @@ FlyFi - Floppy-Fidelity
 
 from PySide import QtGui, QtCore
 from SettingsWindow import SettingsWindow
+from MidiIn import MidiIn
 from FloppyOut import FloppyOut
 
 
@@ -54,8 +55,9 @@ class MainWindow(QtGui.QMainWindow):
         """
         super(MainWindow, self).__init__()
 
+        self.midi_in = MidiIn()
         self.fout = FloppyOut()
-        self.settingswindow = SettingsWindow(self.fout)
+        self.settingswindow = SettingsWindow(self.midi_in, self.fout)
          
         self.init_ui()
 
@@ -133,12 +135,6 @@ class MainWindow(QtGui.QMainWindow):
         toolbar = self.addToolBar('Toolbar')
         toolbar.addAction(act_settings)
         toolbar.addAction(act_exit)
-
-
-        #TOOO: quick and dirty hack! Später wieder entfernen!        
-        #self.fout.map_serial_port_to_channel(1, "/dev/ttyUSB0")
-        #self.fout.map_serial_port_to_channel(2, "/dev/ttyUSB0")
-        #self.fout.connect_serial_ports()
 
 
     def center(self):
