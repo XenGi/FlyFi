@@ -155,7 +155,7 @@ class FloppyOut():
         try:
             self._used_serial_ports[self.midi_channels[midi_channel - 1].serial_port].write(data)
         except:
-            print "serial port error"
+            pass #print "serial port error"
 
 
     def play_note(self, floppy_channel, midi_note):

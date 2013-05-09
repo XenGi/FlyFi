@@ -88,15 +88,16 @@ class MidiIn(object):
             # read exactly one midi event from the queue. It is possible 
             # to read more midi events at once but it is alot easier to 
             # handle them when reading them one by one.
-            midi_events = self.i.read(1) 
-            
+            midi_events = self.i.read(100) # read maximum 
+                        
             # parse midi events
-            status = midi_events[0][0][0]
-            note = midi_events[0][0][1]
-            velocity = midi_events[0][0][2] # velocity is not possible on one floppy. anyway this value is important for pitch bend
-            midi_timestamp = midi_events[0][1]    
-                
-            self.midi_event_callback(status, note, velocity, midi_timestamp)
+            for event in midi_events:            
+                status = event[0][0]
+                note = event[0][1]
+                velocity = event[0][2] # velocity (volume) is not possible on one floppy. anyway this value is important for pitch bend
+                midi_timestamp = event[1]    
+                    
+                self.midi_event_callback(status, note, velocity, midi_timestamp)
                     
 
 def main():    

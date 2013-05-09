@@ -91,7 +91,8 @@ class MainWindow(QtGui.QMainWindow):
             return
             
         if event_str != None:    
-            print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, midi_timestamp)
+            pass
+            #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, midi_timestamp)
         
         
     
