@@ -49,17 +49,66 @@ class MainWindow(QtGui.QMainWindow):
     The mainwindow containing options to fine tune things
     and start everything up.
     """
+    
+    def cb_midi_event(self, status, midi_note, velocity, midi_timestamp):
+        # parsing the events
+        # ==================
+        # only note on, note off and pitch wheel range are
+        # important for us, so the other midi events are just ignored.
+        event_str = None
+        
+        channel = None
+        
+        if status >= 0x80 and status <= 0x8F: # Note Off
+            channel = status - 0x80 + 1
+            event_str = "Chan %s Note off" % channel
+            
+            self.fout.stop_note(channel)
+        elif status >= 0x90 and status <= 0x9F: # Note On
+            channel = status - 0x90 + 1
+            event_str = "Chan %s Note on" % channel  
+      
+            if velocity > 0:
+                self.fout.play_note(channel, midi_note)      
+            else:
+                self.fout.stop_note(channel) # a volume of 0 is the same as note off
+             
+        elif status >= 0xA0 and status <= 0xAF: # Polyphonic Aftertouch (ignore)
+            return
+        elif status >= 0xB0 and status <= 0xBF: # Chan Control mode change (ignore)
+            return
+        elif status >= 0xC0 and status <= 0xCF: # Chan Program change (ignore)
+            return
+        elif status >= 0xD0 and status <= 0xDF: # Channel Aftertouch (ignore)
+            return
+        elif status >= 0xE0 and status <= 0xEF: # pitch bend (TODO: don't ignore!)
+            channel = status - 0xE0 + 1
+            pitch_value = 128 * velocity
+            event_str = "Chan %s pitch bend with value %s and" % (channel, pitch_value)     
+        else:
+            event_str = "unknown event (0x%0X)" % (status)
+            print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, midi_timestamp)
+            return
+            
+        if event_str != None:    
+            print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, midi_timestamp)
+        
+        
+    
     def __init__(self):
         """
         generate other windows, floppy output control and create the gui
         """
         super(MainWindow, self).__init__()
 
-        self.midi_in = MidiIn()
+        self.midi_in = MidiIn(self.cb_midi_event)
         self.fout = FloppyOut()
         self.settingswindow = SettingsWindow(self.midi_in, self.fout)
          
         self.init_ui()
+        
+        #test
+        self.midi_in.start_midi_polling()
 
 
     def setFloatNum(self, float_num):

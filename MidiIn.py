@@ -51,25 +51,39 @@ __version__ = "0.1"
 import pygame
 import pygame.midi
 from pygame.locals import *
+from thread import start_new_thread
 
-class MidiIn():
-    def __init__(self):
+
+class MidiIn(object):
+    def __init__(self, midi_event_callback):
         pygame.init()
 
         pygame.fastevent.init()
         self.event_get = pygame.fastevent.get
         self.event_post = pygame.fastevent.post
-
+        self.midi_event_callback = midi_event_callback
+        
+        
         pygame.midi.init()
         input_id = pygame.midi.get_default_input_id()
         self.i = pygame.midi.Input( input_id )
-        
+    
     def __del__(self):
         self.i.close()
         pygame.midi.quit()
         pygame.quit()
-
-    def poll_event(self):
+    
+    def _worker_thread(self):
+        while(True):
+            self._poll_event()
+        
+    def start_midi_polling(self):
+        start_new_thread(self._worker_thread, ())
+        
+    def stop_midi_polling(self):
+        pass
+        
+    def _poll_event(self):
         if self.i.poll(): # are there MIDI data?
             # read exactly one midi event from the queue. It is possible 
             # to read more midi events at once but it is alot easier to 
@@ -80,38 +94,9 @@ class MidiIn():
             status = midi_events[0][0][0]
             note = midi_events[0][0][1]
             velocity = midi_events[0][0][2] # velocity is not possible on one floppy. anyway this value is important for pitch bend
-            midi_timestamp = midi_events[0][1]
-            
-           
-            # parsing the events
-            # ==================
-            # only note on, note off and pitch wheel range are
-            # important for us, so the other midi events are just ignored.
-            event_str = None
-            
-            if status >= 0x80 and status <= 0x8F: # Note Off
-                chan = status - 0x80
-                event_str = "Chan %s Note off" % ( chan + 1)
-            elif status >= 0x90 and status <= 0x9F: # Note On
-                chan = status - 0x90
-                event_str = "Chan %s Note on" % ( chan + 1)  
-            elif status >= 0xA0 and status <= 0xAF: # Polyphonic Aftertouch (ignore)
-                pass
-            elif status >= 0xB0 and status <= 0xBF: # Chan Control mode change (ignore)
-                pass
-            elif status >= 0xC0 and status <= 0xCF: # Chan Program change (ignore)
-                pass
-            elif status >= 0xD0 and status <= 0xDF: # Channel Aftertouch (ignore)
-                pass
-            elif status >= 0xE0 and status <= 0xEF: # pitch bend (TODO: don't ignore!)
-                chan = status - 0xE0
-                pitch_value = 128 * velocity
-                event_str = "Chan %s pitch bend with value %s and" % (chan + 1, pitch_value)     
-            else:
-                event_str = "unknown event (0x%0X)" % (status)
+            midi_timestamp = midi_events[0][1]    
                 
-            if event_str != None:    
-                print "%s with note %s and velocity %s @ %s" % (event_str, note, velocity, midi_timestamp)
+            self.midi_event_callback(status, note, velocity, midi_timestamp)
                     
 
 def main():    

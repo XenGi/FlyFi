@@ -50,7 +50,7 @@ __version__ = "0.1"
 
 import serial
 import struct
-
+import math
 
 class FloppyOut():
 
@@ -67,7 +67,32 @@ class FloppyOut():
         self.BAUDRATE = 9600
         self.midi_channels = []
         self._used_serial_ports = {}
-		
+
+        #################################
+        # generate frequencies of tones #
+        #################################
+        
+        # The floppies are only able to play tones until about tone 71.
+        # To prevent damage to the floppy drives, the upper value should be limited.
+        # Tones which are too low may not sound good anymore but won't damage the drive.
+        
+        first_note = 23 # B1
+        last_note = 71 # B4
+        
+        
+        # First generate a list with zeros for all 108 midi notes.
+        # midi notes with a frequency of zero won't be played by the microcontroller.
+        self.midiFrequencies = [0 for i in range(108)]
+        
+        # The first midi note 0 has a frequency of 8.17575Hz
+        # Based on this, all other midi notes frequencies can be calculated by multiplying the 
+        # frequency of the first midi note 0 (8.17575Hz) by the factor which results by 
+        # extracting the twelfth root of two with the power of the target midi note.
+      
+        for midi_note in range(first_note, last_note + 1):
+            self.midiFrequencies[midi_note] = 8.17575 * math.pow(2, midi_note / 12.0)
+        
+       
         # TODO: Load mappings from a settings file here
         for i in range(1, self.MAX_CHANNELS + 1):
             self.midi_channels.append(self.MidiChannel(True, i, None))
@@ -113,8 +138,7 @@ class FloppyOut():
 
     def play_tone(self, midi_channel, frequency): 
         if midi_channel < 1 or midi_channel > self.MAX_CHANNELS:
-            raise Exception("channel '%d' out of range. it has to be between 1 - %d" % 
-                                                                 (midi_channel, self.MAX_CHANNELS) )
+            raise Exception("channel '%d' out of range. it has to be between 1 - %d" % (midi_channel, self.MAX_CHANNELS) )
 
         if frequency != 0:
             half_period = (1000000.0 / frequency) / (2.0 * self.ARDUINO_RESOLUTION) # period in microseconds
@@ -127,9 +151,20 @@ class FloppyOut():
  
         physical_pin = (self.midi_channels[midi_channel - 1].floppy_channel - 1) * 2
         data = struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
-        self._used_serial_ports[self.midi_channels[midi_channel - 1].serial_port].write(data)
+        
+        try:
+            self._used_serial_ports[self.midi_channels[midi_channel - 1].serial_port].write(data)
+        except:
+            print "serial port error"
 
 
+    def play_note(self, floppy_channel, midi_note):
+        self.play_tone(floppy_channel, self.midiFrequencies[midi_note])
+        
+    def stop_note(self, floppy_channel):
+        self.play_tone(floppy_channel, 0)
+        
+        
 def main():
     fl = FloppyOut()
     fl.map_serial_port_to_channel(1, "/dev/ttyUSB0")
