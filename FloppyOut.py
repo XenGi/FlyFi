@@ -76,13 +76,13 @@ class FloppyOut():
         # To prevent damage to the floppy drives, the upper value should be limited.
         # Tones which are too low may not sound good anymore but won't damage the drive.
         
-        first_note = 23 # B1
+        first_note = 0 # B -1 ???
         last_note = 71 # B4
         
         
         # First generate a list with zeros for all 108 midi notes.
         # midi notes with a frequency of zero won't be played by the microcontroller.
-        self.midiFrequencies = [0 for i in range(108)]
+        self.midiFrequencies = [0 for i in range(255)]
         
         # The first midi note 0 has a frequency of 8.17575Hz
         # Based on this, all other midi notes frequencies can be calculated by multiplying the 
