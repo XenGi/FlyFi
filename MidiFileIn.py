@@ -57,61 +57,81 @@ import time
 import midi
 
 class MidiFileIn(object):
-    def __init__(self):
+    def __init__(self, midi_event_callback):
         self.midi_file = None
         self.seconds_per_tick = None
+        self.midi_event_callback = midi_event_callback
         
         #debug
         pygame.midi.init()
+        
+        
+    def _dirty_sleep(self, seconds):
+        start = int(round(time.clock() * 1000 * 1000))
+        micros = 0
+        while True:
+            micros = int(round(time.clock() * 1000 * 1000))
+            if (micros - start) >= seconds * 1000 * 1000:
+                break
         
     def _worker_thread(self):
         print "starting thread..."
         
         mout = pygame.midi.Output(pygame.midi.get_default_output_id())
-       
-        track_1 = self.midi_file[1]
-        track_1.reverse()
-     
-        event = track_1.pop()
+        end_of_track = False    
     
-        while len(track_1):
-            chord_list1 = []
-            chord_complete = False
-            first_note = True        
-    
-            while not chord_complete:            
-                if first_note or event.tick == 0:
-                    chord_list1.append(event)
+        # so .pop() can be used    
+        for track in self.midi_file:
+            track.reverse()
+                   
+        while not end_of_track: # every loop is one midi tick
+            end_of_track = True
+            event_list = [] # event list of current tick
+                       
+            for track_index, track in enumerate(self.midi_file):            
+                while len(track) and track[-1].tick == 0:
+                    event_list.append(track.pop())
                     
-                    if len(track_1):
-                        event = track_1.pop()
+                    
+                for event in event_list:
+                    if event.name == "Note On":
+                        mout.note_on(event.pitch, event.velocity, event.channel) # only for debugging. remove later!!!
+                        
+                        if(self.midi_event_callback is not None):
+                            self.midi_event_callback(event.statusmsg, event.pitch, event.velocity, event.tick)
+                        
+                      #  print "%s:, pitch: %d, Volume: %d, tick: %d" % (event.name, event.pitch, event.velocity, event.tick)
+                    elif event.name == "Note Off":
+                        mout.note_off(event.pitch, event.velocity, event.channel) # only for debugging. remove later!!!
+                        
+                        if(self.midi_event_callback is not None):
+                            self.midi_event_callback(event.statusmsg, event.pitch, event.velocity, event.tick)
+                      #  print "%s:, pitch: %d, Volume: %d, tick: %d" % (event.name, event.pitch, event.velocity, event.tick)
+                    elif event.name == "Program Change": # only for debugging. remove later!!!
+                        mout.set_instrument(event.data[0], event.channel)
+                        
+                      
                     else:
-                        chord_complete
-                    
-                    first_note = False
-                else:     
-                    chord_complete = True
- 
- 
-            for note in chord_list1:
-                if note.name == "Note On":
-                    mout.note_on(note.pitch, note.velocity, note.channel)
-                    print "%s:, pitch: %d, Volume: %d, tick: %d" % (note.name, note.pitch, note.velocity, note.tick)
-                elif note.name == "Note Off":
-                    mout.note_off(note.pitch, note.velocity, note.channel)
-                    print "%s:, pitch: %d, Volume: %d, tick: %d" % (note.name, note.pitch, note.velocity, note.tick)
-                else:
-                    print "unknown event (%s)" % note.name
+                        #print "unknown event in Track %d: %s" % (track_index, event.name)
+                        pass
+                        
+            
                 
-            time.sleep( self.seconds_per_tick * event.tick)
-        
-        print "closing thread..."        
-                #self._poll_event()
+                if len(track):
+                    track[-1].tick -= 1
+                    end_of_track = False
+            
+            self._dirty_sleep( self.seconds_per_tick ) # dirty solution which results in a high cpu load. (but is very accurate)
+            
+            
+                    
+        print "closing thread..."
+    
         
     def _set_ms_per_tick_from_bpm(self, bpm):
         ticks_per_beat = self.midi_file.resolution
         beats_per_minute = bpm 
-        self.seconds_per_tick = 1/((ticks_per_beat * beats_per_minute) / 60.0)
+        self.seconds_per_tick = 1.0/((ticks_per_beat * beats_per_minute) / 60.0)
         
     def stop_midi_polling(self):
         pass
@@ -138,7 +158,7 @@ class MidiFileIn(object):
                     
 
 def main():    
-    mfin = MidiFileIn()
+    mfin = MidiFileIn(None)
     mfin.open_midi_file("mary.mid")
     mfin.play()
     
