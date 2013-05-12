@@ -109,7 +109,7 @@ class MainWindow(QtGui.QMainWindow):
         self.init_ui()
         
         #test
-        self.midi_in.start_midi_polling()
+        #self.midi_in.start_midi_polling()
 
 
     def setFloatNum(self, float_num):
@@ -124,44 +124,6 @@ class MainWindow(QtGui.QMainWindow):
         self.setWindowTitle('FlyFi - Floppy-Fidelity')
         self.setWindowIcon(QtGui.QIcon('images/flyfi-logo.png'))
         self.center()
-
-        centralwidget = QtGui.QWidget()
-        grid = QtGui.QGridLayout()
-
-        self.lab_freq = QtGui.QLabel()
-        self.lab_freq.setMinimumWidth(50)
-        self.lab_freq.setAlignment(QtCore.Qt.AlignRight |
-                                   QtCore.Qt.AlignVCenter)
-        sld_freq = QtGui.QSlider()
-        sld_freq.setOrientation(QtCore.Qt.Horizontal)
-        sld_freq.setTracking(True)
-        sld_freq.setRange(0, 80000)
-        sld_freq.valueChanged.connect(self.setFloatNum)
-        sld_freq.setPageStep(1)
-        sld_freq.setSingleStep(1) 
-
-        self.setFloatNum(sld_freq.value())
-        self.spb_channel = QtGui.QSpinBox()
-        self.spb_channel.setRange(1, 16)
-        pb_play = QtGui.QPushButton('Play')
-        pb_play.clicked.connect(self.pb_play_pressed)
-        pb_play.resize(pb_play.sizeHint())
-        pb_stop = QtGui.QPushButton('Stop')
-        pb_stop.clicked.connect(self.pb_stop_pressed)
-        pb_stop.resize(pb_stop.sizeHint())
-
-
-        grid.addWidget(QtGui.QLabel('Frequency:'), 0, 0)
-        grid.addWidget(sld_freq, 0, 1)
-        grid.addWidget(self.lab_freq, 0, 2)
-        grid.addWidget(QtGui.QLabel('Hz'), 0, 3)
-        grid.addWidget(QtGui.QLabel('Channel:'), 1, 0)
-        grid.addWidget(self.spb_channel, 1, 1, 1, 3)
-        grid.addWidget(pb_play, 2, 0, 1, 2)
-        grid.addWidget(pb_stop, 1, 0, 2, 2)
-
-        centralwidget.setLayout(grid)
-        self.setCentralWidget(centralwidget)
 
         self.statusBar().showMessage('Ready')
 

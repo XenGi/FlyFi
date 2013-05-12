@@ -61,72 +61,67 @@ class MidiFileIn(object):
         self.midi_file = None
         self.seconds_per_tick = None
         self.midi_event_callback = midi_event_callback
-        
-        #debug
-        pygame.midi.init()
-        
-        
+            
+            
+    # (depricated) dirty sleep solution which results in a high cpu load. (but is very accurate)            
     def _dirty_sleep(self, seconds):
-        start = int(round(time.clock() * 1000 * 1000))
+        start = int(time.clock() * 1000 * 1000)
+        
         micros = 0
         while True:
-            micros = int(round(time.clock() * 1000 * 1000))
+            micros = int(time.clock() * 1000 * 1000)
             if (micros - start) >= seconds * 1000 * 1000:
                 break
         
-    def _worker_thread(self):
-        print "starting thread..."
+    def _midi_tick(self):
+        end_of_track = True
+        event_list = [] # event list of current tick
+                   
+        for track_index, track in enumerate(self.midi_file):
+            while len(track) and track[-1].tick == 0:
+                event_list.append(track.pop())
+
+            # since the python-midi library seems not to be consistent (sometimes the channels of the events are missing), 
+            # the callback will only be called on Note On, Note Off (and later pitch bend) events.
+            for event in event_list:  
+                if self.midi_event_callback is not None:
+                    if event.name == "Note On" or event.name == "Note Off":
+                        self.midi_event_callback(event.statusmsg + event.channel, event.data[0], event.data[1], event.tick)
+                
+
+            if len(track):
+                track[-1].tick -= 1
+                end_of_track = False
+         
+        return end_of_track
         
-        mout = pygame.midi.Output(pygame.midi.get_default_output_id())
+        
+    def _worker_thread(self): 
         end_of_track = False    
     
         # so .pop() can be used    
         for track in self.midi_file:
             track.reverse()
                    
+        # This is the mainloop for playing the midi-file.
+        # Previously this dirty sleep function has been layed out to a function
+        # and was called at the end of the loop.
+        # This resulted in slowdowns of the song on very complex midi files like the imperial march, where 
+        # the function already needs much of the midi-tick time while generating the midi-event lists.
+        #
+        # In this new way, only the rest of the time (or no if late) has to be wait at the end of the loop, 
+        # so slowdowns of a song will be minimized. 
+        
         while not end_of_track: # every loop is one midi tick
-            end_of_track = True
-            event_list = [] # event list of current tick
-                       
-            for track_index, track in enumerate(self.midi_file):            
-                while len(track) and track[-1].tick == 0:
-                    event_list.append(track.pop())
-                    
-                    
-                for event in event_list:
-                    if event.name == "Note On":
-                        mout.note_on(event.pitch, event.velocity, event.channel) # only for debugging. remove later!!!
-                        
-                        if(self.midi_event_callback is not None):
-                            self.midi_event_callback(event.statusmsg, event.pitch, event.velocity, event.tick)
-                        
-                      #  print "%s:, pitch: %d, Volume: %d, tick: %d" % (event.name, event.pitch, event.velocity, event.tick)
-                    elif event.name == "Note Off":
-                        mout.note_off(event.pitch, event.velocity, event.channel) # only for debugging. remove later!!!
-                        
-                        if(self.midi_event_callback is not None):
-                            self.midi_event_callback(event.statusmsg, event.pitch, event.velocity, event.tick)
-                      #  print "%s:, pitch: %d, Volume: %d, tick: %d" % (event.name, event.pitch, event.velocity, event.tick)
-                    elif event.name == "Program Change": # only for debugging. remove later!!!
-                        mout.set_instrument(event.data[0], event.channel)
-                        
-                      
-                    else:
-                        #print "unknown event in Track %d: %s" % (track_index, event.name)
-                        pass
-                        
+            start = int(time.clock() * 1000 * 1000)
+        
+            end_of_track = self._midi_tick()
             
-                
-                if len(track):
-                    track[-1].tick -= 1
-                    end_of_track = False
-            
-            self._dirty_sleep( self.seconds_per_tick ) # dirty solution which results in a high cpu load. (but is very accurate)
+            micros = 0
+            while (micros - start) < self.seconds_per_tick * 1000 * 1000:
+                micros = int(time.clock() * 1000 * 1000)
             
             
-                    
-        print "closing thread..."
-    
         
     def _set_ms_per_tick_from_bpm(self, bpm):
         ticks_per_beat = self.midi_file.resolution
@@ -138,7 +133,7 @@ class MidiFileIn(object):
         
     def open_midi_file(self, path_to_file):
         self.midi_file = midi.read_midifile(path_to_file)
-        self._set_ms_per_tick_from_bpm(120) # TODO: read temppo from file!
+        self._set_ms_per_tick_from_bpm(200) # TODO: read temppo from file!
         
         print "opened midi file: %s" % path_to_file
         
@@ -152,14 +147,78 @@ class MidiFileIn(object):
     def play(self):
         #start_new_thread(self._worker_thread, ())
         
+        print "start playing..."
         self._worker_thread()
+        print "finished."
     
         
                     
 
 def main():    
-    mfin = MidiFileIn(None)
-    mfin.open_midi_file("mary.mid")
+
+    pygame.midi.init() #debug
+    mout = pygame.midi.Output(pygame.midi.get_default_output_id())
+
+
+    def cb_midi_event(status, data1, data2, tick):
+        # parsing the events
+        # ==================
+        # only note on, note off and pitch wheel range are
+        # important for us, so the other midi events are just ignored.
+        event_str = None
+        
+        channel = None
+        
+        if status >= 0x80 and status <= 0x8F: # Note Off
+            channel = status - 0x80 + 1
+            midi_note = data1;
+            velocity = data2
+            
+            event_str = "Chan %s Note off" % channel
+            
+            #self.fout.stop_note(channel)
+            mout.note_off(midi_note, velocity, channel) # only for debugging. remove later!!!
+        elif status >= 0x90 and status <= 0x9F: # Note On
+            channel = status - 0x90 + 1
+            midi_note = data1;
+            velocity = data2
+            
+            event_str = "Chan %s Note on" % channel  
+
+            if velocity > 0:
+                mout.note_on(midi_note, velocity, channel) # only for debugging. remove later!!!
+                #self.fout.play_note(channel, midi_note)      
+            else:
+                mout.note_on(midi_note, velocity, channel) # only for debugging. remove later!!!
+                #self.fout.stop_note(channel) # a volume of 0 is the same as note off
+             
+        elif status >= 0xA0 and status <= 0xAF: # Polyphonic Aftertouch (ignore)
+            return
+        elif status >= 0xB0 and status <= 0xBF: # Chan Control mode change (ignore)
+            return
+        elif status >= 0xC0 and status <= 0xCF: # Chan Program change (ignore)
+            mout.set_instrument(event.data, event.channel)
+        elif status >= 0xD0 and status <= 0xDF: # Channel Aftertouch (ignore)
+            return
+        elif status >= 0xE0 and status <= 0xEF: # pitch bend (TODO: don't ignore!)
+            channel = status - 0xE0 + 1
+            pitch_value = 128 * velocity
+            event_str = "Chan %s pitch bend with value %s and" % (channel, pitch_value)     
+        else:
+            event_str = "unknown event (0x%0X)" % (status)
+            print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
+            return
+            
+        if event_str != None:    
+            #pass
+            print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
+
+
+
+
+
+    mfin = MidiFileIn(cb_midi_event)
+    mfin.open_midi_file("fish2.mid")
     mfin.play()
     
     
