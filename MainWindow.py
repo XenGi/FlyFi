@@ -41,7 +41,9 @@ FlyFi - Floppy-Fidelity
 from PySide import QtGui, QtCore
 from SettingsWindow import SettingsWindow
 from MidiIn import MidiIn
+from MidiFileIn import MidiFileIn
 from FloppyOut import FloppyOut
+import pygame.midi
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -50,7 +52,7 @@ class MainWindow(QtGui.QMainWindow):
     and start everything up.
     """
     
-    def cb_midi_event(self, status, midi_note, velocity, midi_timestamp):
+    def cb_midi_event(self, status, data1, data2, tick):
         # parsing the events
         # ==================
         # only note on, note off and pitch wheel range are
@@ -61,24 +63,33 @@ class MainWindow(QtGui.QMainWindow):
         
         if status >= 0x80 and status <= 0x8F: # Note Off
             channel = status - 0x80 + 1
+            midi_note = data1;
+            velocity = data2
+            
             event_str = "Chan %s Note off" % channel
             
-            self.fout.stop_note(channel)
+            #self.fout.stop_note(channel)
+            self.mout.note_off(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
         elif status >= 0x90 and status <= 0x9F: # Note On
             channel = status - 0x90 + 1
+            midi_note = data1;
+            velocity = data2
+            
             event_str = "Chan %s Note on" % channel  
-      
+
             if velocity > 0:
-                self.fout.play_note(channel, midi_note)      
+                self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
+                #self.fout.play_note(channel, midi_note)      
             else:
-                self.fout.stop_note(channel) # a volume of 0 is the same as note off
+                self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
+                #self.fout.stop_note(channel) # a volume of 0 is the same as note off
              
         elif status >= 0xA0 and status <= 0xAF: # Polyphonic Aftertouch (ignore)
             return
         elif status >= 0xB0 and status <= 0xBF: # Chan Control mode change (ignore)
             return
         elif status >= 0xC0 and status <= 0xCF: # Chan Program change (ignore)
-            return
+            self.mout.set_instrument(event.data, event.channel)
         elif status >= 0xD0 and status <= 0xDF: # Channel Aftertouch (ignore)
             return
         elif status >= 0xE0 and status <= 0xEF: # pitch bend (TODO: don't ignore!)
@@ -87,26 +98,32 @@ class MainWindow(QtGui.QMainWindow):
             event_str = "Chan %s pitch bend with value %s and" % (channel, pitch_value)     
         else:
             event_str = "unknown event (0x%0X)" % (status)
-            print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, midi_timestamp)
+            print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
             return
             
         if event_str != None:    
             pass
-            #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, midi_timestamp)
-        
-        
+            #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
     
     def __init__(self):
         """
         generate other windows, floppy output control and create the gui
         """
         super(MainWindow, self).__init__()
+        
+        #debug
+        pygame.midi.init() #debug
+        self.mout = pygame.midi.Output(pygame.midi.get_default_output_id())
 
         self.midi_in = MidiIn(self.cb_midi_event)
+        self.midi_fin = MidiFileIn(self.cb_midi_event, self.mout)
         self.fout = FloppyOut()
         self.settingswindow = SettingsWindow(self.midi_in, self.fout)
          
+         
         self.init_ui()
+        
+        
         
         #test
         #self.midi_in.start_midi_polling()
@@ -116,6 +133,8 @@ class MainWindow(QtGui.QMainWindow):
         self.lab_freq.setText( "%.2f" % (float_num / 100.0) )
 
 
+        
+        
     def init_ui(self):
         """
         create the gui and connect actions
@@ -147,7 +166,40 @@ class MainWindow(QtGui.QMainWindow):
         toolbar = self.addToolBar('Toolbar')
         toolbar.addAction(act_settings)
         toolbar.addAction(act_exit)
+        
+        
+        
+        # midi player
+       
+        openMidiButton = QtGui.QPushButton("Open Midi")
+        openMidiButton.clicked.connect(self.showFileDialog)
+        
+        playButton = QtGui.QPushButton("Play")
+        playButton.clicked.connect(self.playMidiFile)
 
+        hbox = QtGui.QHBoxLayout()
+        hbox.addWidget(openMidiButton)
+        hbox.addWidget(playButton)
+        hbox.addStretch(1)
+
+        vbox = QtGui.QVBoxLayout()
+        vbox.addLayout(hbox)
+        vbox.addStretch(1)
+        
+        
+        
+        centralwidget = QtGui.QWidget()
+        centralwidget.setLayout(vbox)
+        self.setCentralWidget(centralwidget)
+        
+
+    def showFileDialog(self):
+        fname, _ = QtGui.QFileDialog.getOpenFileName(self, 'Open file')
+        self.midi_fin.open_midi_file(fname)
+        
+    def playMidiFile(self):
+        self.midi_fin.play()
+        
 
     def center(self):
         """
@@ -158,17 +210,7 @@ class MainWindow(QtGui.QMainWindow):
         frame_geo.moveCenter(desktop_center)
         self.move(frame_geo.topLeft())
 
-    def pb_play_pressed(self):
-        """
-        send the current settings to floppy out and play the given tone
-        """
-        self.fout.play_tone(self.spb_channel.value(), float(self.lab_freq.text())) # todo: split presentation layer from datamodel(?)
-
-    def pb_stop_pressed(self):
-        """
-        stop playing the current tone on the floppy
-        """
-        self.fout.play_tone(self.spb_channel.value(), 0) # playing a tone with 0hz will stop the floppy motor
+   
 
     def cb_open_settings_window(self):
         self.settingswindow.show()

@@ -147,28 +147,35 @@ class SettingsWindow(QtGui.QMainWindow):
 
 
         # benchmark tab
-        benchmark_vbox = QtGui.QVBoxLayout()
-
+        #benchmark_vbox = QtGui.QVBoxLayout()
         
+        controls_tones_hbox = QtGui.QHBoxLayout()
+        vbox = QtGui.QVBoxLayout()
+        tones_grid = QtGui.QGridLayout()
         
-        grid = QtGui.QGridLayout()
 
         # generate frequency buttons
         
         letters = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
         # 0th octave
-        for octave in range(4):
+        
+        
+        for octave in range(4): 
             for tone_of_octave in range(12):
-                grid.addWidget(QtGui.QPushButton('%s%d' % (letters[tone_of_octave], octave), self), octave, tone_of_octave)
+                btn = QtGui.QPushButton('%s%d' % (letters[tone_of_octave], octave), self)
+                btn.setFixedWidth(30)
+                tones_grid.addWidget(btn, octave, tone_of_octave)
+                
+        
         
         self.lab_freq = QtGui.QLabel()
-        self.lab_freq.setMinimumWidth(50)
+        self.lab_freq.setMinimumWidth(35)
         self.lab_freq.setAlignment(QtCore.Qt.AlignRight |
                                    QtCore.Qt.AlignVCenter)
         sld_freq = QtGui.QSlider()
         sld_freq.setOrientation(QtCore.Qt.Horizontal)
         sld_freq.setTracking(True)
-        sld_freq.setRange(0, 80000)
+        sld_freq.setRange(0, 44000)
         sld_freq.valueChanged.connect(self.setFloatNum)
         sld_freq.setPageStep(1)
         sld_freq.setSingleStep(1) 
@@ -184,18 +191,28 @@ class SettingsWindow(QtGui.QMainWindow):
         pb_stop.resize(pb_stop.sizeHint())
 
 
-        grid.addWidget(QtGui.QLabel('Frequency:'), 5, 0)
-        grid.addWidget(sld_freq, 5, 1)
-        grid.addWidget(self.lab_freq, 5, 2)
-        grid.addWidget(QtGui.QLabel('Hz'), 5, 3)
-        grid.addWidget(QtGui.QLabel('Channel:'), 6, 0)
-        grid.addWidget(self.spb_channel, 6, 1, 1, 3)
-        grid.addWidget(pb_play, 7, 0, 1, 2)
-        grid.addWidget(pb_stop, 6, 0, 2, 2)
-
-        tab_benchmark.setLayout(grid)
-        self.setCentralWidget(centralwidget)
+        # frequency controller
+        controls_grid = QtGui.QGridLayout()
+        controls_grid.addWidget(QtGui.QLabel('Frequency:'), 5, 0)
+        controls_grid.addWidget(sld_freq, 5, 1)
+        controls_grid.addWidget(self.lab_freq, 5, 2)
+        controls_grid.addWidget(QtGui.QLabel('Hz'), 5, 3)
+        controls_grid.addWidget(QtGui.QLabel('Channel:'), 6, 0)
+        controls_grid.addWidget(self.spb_channel, 6, 1, 1, 3)
+        controls_grid.addWidget(pb_play, 7, 0, 1, 4)
+        controls_grid.addWidget(pb_stop, 8, 0, 1, 4)
         
+        
+        #building the form    
+        controls_tones_hbox.addLayout(controls_grid)
+        controls_tones_hbox.addSpacing(15)
+        controls_tones_hbox.addLayout(tones_grid)
+        #vbox.addStretch(1)
+        
+        vbox.addLayout(controls_tones_hbox)
+        tab_benchmark.setLayout(vbox)
+    
+
 
         # create tabs
         centralwidget.addTab(tab_channel, "MIDI Channels")

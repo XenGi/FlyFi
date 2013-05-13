@@ -57,11 +57,15 @@ import time
 import midi
 
 class MidiFileIn(object):
-    def __init__(self, midi_event_callback):
+
+    # For debugging reasons a pygame.midi.Output instance can be given as optional parameter.
+    # This will result in correct instrument mappings when Playing the sounds. Else every
+    # Channel will have a piano as default instrument.
+    def __init__(self, midi_event_callback, debug_pygame_midi_out = None):
         self.midi_file = None
         self.seconds_per_tick = None
         self.midi_event_callback = midi_event_callback
-            
+        self.debug_pygame_midi_out = debug_pygame_midi_out
             
     # (depricated) dirty sleep solution which results in a high cpu load. (but is very accurate)            
     def _dirty_sleep(self, seconds):
@@ -87,6 +91,14 @@ class MidiFileIn(object):
                 if self.midi_event_callback is not None:
                     if event.name == "Note On" or event.name == "Note Off":
                         self.midi_event_callback(event.statusmsg + event.channel, event.data[0], event.data[1], event.tick)
+                    elif event.name == "Set Tempo":
+                        self._set_ms_per_tick_from_bpm(event.bpm)
+                    #    print "[Track %d] Tempo: %d" % (track_index, event.bpm)
+                    elif event.name == "Program Change":
+                        if self.debug_pygame_midi_out is not None:
+                            self.debug_pygame_midi_out.set_instrument(event.data[0], event.channel)
+                   # else:
+                   #     print "Unhandled event: %s" % event.name
                 
 
             if len(track):
@@ -97,6 +109,7 @@ class MidiFileIn(object):
         
         
     def _worker_thread(self): 
+        print "[MidiFileIn.py] debug: start playing..."
         end_of_track = False    
     
         # so .pop() can be used    
@@ -122,6 +135,7 @@ class MidiFileIn(object):
                 micros = int(time.clock() * 1000 * 1000)
             
             
+        print "[MidiFileIn.py] debug: finished playing!"
         
     def _set_ms_per_tick_from_bpm(self, bpm):
         ticks_per_beat = self.midi_file.resolution
@@ -133,9 +147,9 @@ class MidiFileIn(object):
         
     def open_midi_file(self, path_to_file):
         self.midi_file = midi.read_midifile(path_to_file)
-        self._set_ms_per_tick_from_bpm(200) # TODO: read temppo from file!
+        self._set_ms_per_tick_from_bpm(120) #default value which will be overwritten on play
         
-        print "opened midi file: %s" % path_to_file
+        print "[MidiFileIn.py] opened midi file: %s" % path_to_file
         
         
         
@@ -144,21 +158,15 @@ class MidiFileIn(object):
     
     # starts reading the events of the midi file and
     # calls the specified callback with correct timings
-    def play(self):
-        #start_new_thread(self._worker_thread, ())
+    def play(self): 
+        start_new_thread(self._worker_thread, ())
+       
         
-        print "start playing..."
-        self._worker_thread()
-        print "finished."
     
         
                     
 
 def main():    
-
-    pygame.midi.init() #debug
-    mout = pygame.midi.Output(pygame.midi.get_default_output_id())
-
 
     def cb_midi_event(status, data1, data2, tick):
         # parsing the events
@@ -177,7 +185,7 @@ def main():
             event_str = "Chan %s Note off" % channel
             
             #self.fout.stop_note(channel)
-            mout.note_off(midi_note, velocity, channel) # only for debugging. remove later!!!
+            mout.note_off(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
         elif status >= 0x90 and status <= 0x9F: # Note On
             channel = status - 0x90 + 1
             midi_note = data1;
@@ -186,10 +194,10 @@ def main():
             event_str = "Chan %s Note on" % channel  
 
             if velocity > 0:
-                mout.note_on(midi_note, velocity, channel) # only for debugging. remove later!!!
+                mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
                 #self.fout.play_note(channel, midi_note)      
             else:
-                mout.note_on(midi_note, velocity, channel) # only for debugging. remove later!!!
+                mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
                 #self.fout.stop_note(channel) # a volume of 0 is the same as note off
              
         elif status >= 0xA0 and status <= 0xAF: # Polyphonic Aftertouch (ignore)
@@ -210,14 +218,14 @@ def main():
             return
             
         if event_str != None:    
-            #pass
-            print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
+            pass
+            #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
 
 
+    pygame.midi.init() #debug
+    mout = pygame.midi.Output(pygame.midi.get_default_output_id())
 
-
-
-    mfin = MidiFileIn(cb_midi_event)
+    mfin = MidiFileIn(cb_midi_event, mout)
     mfin.open_midi_file("fish2.mid")
     mfin.play()
     
