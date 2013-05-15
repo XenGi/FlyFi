@@ -66,7 +66,7 @@ class MidiIn(object):
         
         pygame.midi.init()
         input_id = pygame.midi.get_default_input_id()
-        self.i = pygame.midi.Input( input_id )
+        self.i = None# pygame.midi.Input( input_id )
     
     def __del__(self):
         self.i.close()

@@ -72,6 +72,22 @@ class SettingsWindow(QtGui.QMainWindow):
 
         self.init_ui()
         
+        
+    def setFloatNum(self, float_num):
+        self.lab_freq.setText( "%.2f" % (float_num / 100.0) )
+        
+    def pb_play_pressed(self):
+        """
+        send the current settings to floppy out and play the given tone
+        """
+        self.fout.play_tone(self.spb_channel.value(), float(self.lab_freq.text())) # todo: split presentation layer from datamodel(?)
+
+    def pb_stop_pressed(self):
+        """
+        stop playing the current tone on the floppy
+        """
+        self.fout.play_tone(self.spb_channel.value(), 0) # playing a tone with 0hz will stop the floppy motor
+        
     def init_ui(self):
         self.resize(650, 680)
         self.setWindowTitle('FlyFi - Settings')
@@ -80,7 +96,7 @@ class SettingsWindow(QtGui.QMainWindow):
 
         centralwidget = QtGui.QTabWidget()
         tab_channel = QtGui.QWidget()
-        tab_serial_ports = QtGui.QWidget()
+        tab_benchmark = QtGui.QWidget()
 
         # channel tab
         channel_vbox = QtGui.QVBoxLayout()
@@ -131,19 +147,76 @@ class SettingsWindow(QtGui.QMainWindow):
 
 
         # benchmark tab
-	benchmark_vbox = QtGui.QVBoxLayout()
-        lb_note = QtGui.QLabel('Todo: Floppies will be tested here!')
-        benchmark_vbox.addWidget(lb_note)
+        #benchmark_vbox = QtGui.QVBoxLayout()
+        
+        controls_tones_hbox = QtGui.QHBoxLayout()
+        vbox = QtGui.QVBoxLayout()
+        tones_grid = QtGui.QGridLayout()
+        
 
-#        self.serial_ports_table = QtGui.QTableWidget(0, 2)
-#        self.serial_ports_table.setHorizontalHeaderLabels(['Serial Port', 'Connection'])
-#        self.serial_ports_table.cellClicked.connect(self.cell_clicked)                
-#        tab_serial_ports.setLayout(serial_ports_vbox)
+        # generate frequency buttons
+        
+        letters = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+        # 0th octave
+        
+        
+        for octave in range(4): 
+            for tone_of_octave in range(12):
+                btn = QtGui.QPushButton('%s%d' % (letters[tone_of_octave], octave), self)
+                btn.setFixedWidth(30)
+                tones_grid.addWidget(btn, octave, tone_of_octave)
+                
+        
+        
+        self.lab_freq = QtGui.QLabel()
+        self.lab_freq.setMinimumWidth(35)
+        self.lab_freq.setAlignment(QtCore.Qt.AlignRight |
+                                   QtCore.Qt.AlignVCenter)
+        sld_freq = QtGui.QSlider()
+        sld_freq.setOrientation(QtCore.Qt.Horizontal)
+        sld_freq.setTracking(True)
+        sld_freq.setRange(0, 44000)
+        sld_freq.valueChanged.connect(self.setFloatNum)
+        sld_freq.setPageStep(1)
+        sld_freq.setSingleStep(1) 
+
+        self.setFloatNum(sld_freq.value())
+        self.spb_channel = QtGui.QSpinBox()
+        self.spb_channel.setRange(1, 16)
+        pb_play = QtGui.QPushButton('Play')
+        pb_play.clicked.connect(self.pb_play_pressed)
+        pb_play.resize(pb_play.sizeHint())
+        pb_stop = QtGui.QPushButton('Stop')
+        pb_stop.clicked.connect(self.pb_stop_pressed)
+        pb_stop.resize(pb_stop.sizeHint())
+
+
+        # frequency controller
+        controls_grid = QtGui.QGridLayout()
+        controls_grid.addWidget(QtGui.QLabel('Frequency:'), 5, 0)
+        controls_grid.addWidget(sld_freq, 5, 1)
+        controls_grid.addWidget(self.lab_freq, 5, 2)
+        controls_grid.addWidget(QtGui.QLabel('Hz'), 5, 3)
+        controls_grid.addWidget(QtGui.QLabel('Channel:'), 6, 0)
+        controls_grid.addWidget(self.spb_channel, 6, 1, 1, 3)
+        controls_grid.addWidget(pb_play, 7, 0, 1, 4)
+        controls_grid.addWidget(pb_stop, 8, 0, 1, 4)
+        
+        
+        #building the form    
+        controls_tones_hbox.addLayout(controls_grid)
+        controls_tones_hbox.addSpacing(15)
+        controls_tones_hbox.addLayout(tones_grid)
+        #vbox.addStretch(1)
+        
+        vbox.addLayout(controls_tones_hbox)
+        tab_benchmark.setLayout(vbox)
+    
 
 
         # create tabs
         centralwidget.addTab(tab_channel, "MIDI Channels")
-        centralwidget.addTab(tab_serial_ports, "Benchmark")
+        centralwidget.addTab(tab_benchmark, "Benchmark")
  
         self.setCentralWidget(centralwidget)
         
