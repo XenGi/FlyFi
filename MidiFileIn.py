@@ -79,15 +79,23 @@ class MidiFileIn(object):
         
     def _midi_tick(self):
         end_of_track = True
-        event_list = [] # event list of current tick
-                   
+        ticks_to_wait = None
+            
+        # get lowest tick of all tracks to calulate the ticks to wait
+        # before the next midi tick will be executed
+        for track in self.midi_file:
+            if len(track) and (ticks_to_wait == None or ticks_to_wait > track[-1].tick):
+                ticks_to_wait = track[-1].tick
+            
         for track_index, track in enumerate(self.midi_file):
+            event_list = []
+        
             while len(track) and track[-1].tick == 0:
                 event_list.append(track.pop())
 
-            # since the python-midi library seems not to be consistent (sometimes the channels of the events are missing), 
+            # since the python-midi library seems not to be consistent (sometimes the channels of the events are missing),
             # the callback will only be called on Note On, Note Off (and later pitch bend) events.
-            for event in event_list:  
+            for event in event_list:
                 if self.midi_event_callback is not None:
                     if event.name == "Note On" or event.name == "Note Off":
                         self.midi_event_callback(event.statusmsg + event.channel, event.data[0], event.data[1], event.tick)
@@ -102,13 +110,13 @@ class MidiFileIn(object):
                 
 
             if len(track):
-                track[-1].tick -= 1
+                track[-1].tick -= ticks_to_wait
                 end_of_track = False
          
-        return end_of_track
+        return (end_of_track, ticks_to_wait)
         
         
-    def _worker_thread(self): 
+    def _worker_thread(self):
         print "[MidiFileIn.py] debug: start playing..."
         end_of_track = False    
     
@@ -123,16 +131,30 @@ class MidiFileIn(object):
         # the function already needs much of the midi-tick time while generating the midi-event lists.
         #
         # In this new way, only the rest of the time (or no if late) has to be wait at the end of the loop, 
-        # so slowdowns of a song will be minimized. 
+        # so slowdowns of a song will be minimized.
+        debug_counter = 0
         
         while not end_of_track: # every loop is one midi tick
             start = int(time.clock() * 1000 * 1000)
-        
-            end_of_track = self._midi_tick()
+            (end_of_track, ticks_to_wait) = self._midi_tick()
             
-            micros = 0
-            while (micros - start) < self.seconds_per_tick * 1000 * 1000:
-                micros = int(time.clock() * 1000 * 1000)
+            micros = int(time.clock() * 1000 * 1000)
+            
+            debug_first = True
+            diff = 0
+            
+            while (micros - start) < ticks_to_wait * self.seconds_per_tick * 1000 * 1000:
+                micros = time.clock() * 1000 * 1000
+                debug_first = False
+                debug_counter += 1
+                
+            #if debug_first:
+            time_to_wait = ticks_to_wait * self.seconds_per_tick * 1000 * 1000
+            elapsed_time = micros - start
+            diff = elapsed_time - time_to_wait
+            
+            if time_to_wait != 0 and elapsed_time > time_to_wait * 1.10:
+                print "Performance problem. time to wait: %d, elapsed time: %d, diff: %d" % (time_to_wait, elapsed_time, diff)
             
             
         print "[MidiFileIn.py] debug: finished playing!"
@@ -184,7 +206,7 @@ def main():
             
             event_str = "Chan %s Note off" % channel
             
-            #self.fout.stop_note(channel)
+            self.fout.stop_note(channel)
             mout.note_off(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
         elif status >= 0x90 and status <= 0x9F: # Note On
             channel = status - 0x90 + 1
@@ -195,10 +217,10 @@ def main():
 
             if velocity > 0:
                 mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
-                #self.fout.play_note(channel, midi_note)      
+                self.fout.play_note(channel, midi_note)      
             else:
                 mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
-                #self.fout.stop_note(channel) # a volume of 0 is the same as note off
+                self.fout.stop_note(channel) # a volume of 0 is the same as note off
              
         elif status >= 0xA0 and status <= 0xAF: # Polyphonic Aftertouch (ignore)
             return

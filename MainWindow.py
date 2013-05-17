@@ -52,48 +52,49 @@ class MainWindow(QtGui.QMainWindow):
     and start everything up.
     """
     
+    
     def cb_midi_event(self, status, data1, data2, tick):
         # parsing the events
         # ==================
         # only note on, note off and pitch wheel range are
         # important for us, so the other midi events are just ignored.
         event_str = None
-        
         channel = None
         
         if status >= 0x80 and status <= 0x8F: # Note Off
             channel = status - 0x80 + 1
-            midi_note = data1;
+            midi_note = data1
             velocity = data2
             
             event_str = "Chan %s Note off" % channel
             
-            #self.fout.stop_note(channel)
+            self.fout.stop_note(channel)
             self.mout.note_off(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
         elif status >= 0x90 and status <= 0x9F: # Note On
             channel = status - 0x90 + 1
-            midi_note = data1;
+            midi_note = data1
             velocity = data2
             
-            event_str = "Chan %s Note on" % channel  
+            event_str = "Chan %s Note on" % channel
 
             if velocity > 0:
                 self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
-                #self.fout.play_note(channel, midi_note)      
+                self.fout.play_note(channel, midi_note)      
             else:
                 self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
-                #self.fout.stop_note(channel) # a volume of 0 is the same as note off
+                self.fout.stop_note(channel) # a volume of 0 is the same as note off
              
         elif status >= 0xA0 and status <= 0xAF: # Polyphonic Aftertouch (ignore)
             return
         elif status >= 0xB0 and status <= 0xBF: # Chan Control mode change (ignore)
             return
         elif status >= 0xC0 and status <= 0xCF: # Chan Program change (ignore)
-            self.mout.set_instrument(event.data, event.channel)
+            return #self.mout.set_instrument(event.data, event.channel)
         elif status >= 0xD0 and status <= 0xDF: # Channel Aftertouch (ignore)
             return
         elif status >= 0xE0 and status <= 0xEF: # pitch bend (TODO: don't ignore!)
             channel = status - 0xE0 + 1
+            velocity = data2
             pitch_value = 128 * velocity
             event_str = "Chan %s pitch bend with value %s and" % (channel, pitch_value)     
         else:
@@ -122,19 +123,15 @@ class MainWindow(QtGui.QMainWindow):
          
          
         self.init_ui()
-        
-        
-        
-        #test
-        #self.midi_in.start_midi_polling()
+                
+        # test
+        self.midi_in.start_midi_polling()
 
 
     def setFloatNum(self, float_num):
         self.lab_freq.setText( "%.2f" % (float_num / 100.0) )
 
 
-        
-        
     def init_ui(self):
         """
         create the gui and connect actions
