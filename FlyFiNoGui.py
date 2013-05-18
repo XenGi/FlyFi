@@ -42,87 +42,100 @@ from MidiFileIn import MidiFileIn
 from FloppyOut import FloppyOut
 import pygame.midi
 import sys
+import signal
 
 
+class FlyFiNoGui(object):
+    def signal_handler(self, signal, frame):
+        print "stopping"
+        self.midi_fin.stop()
+        print "resetting floppies"
+        self.fout.reset_floppies()
+        print "exitting..."
+        sys.exit()
 
-def midi_event(self, status, data1, data2, tick):
-    # parsing the events
-    # ==================
-    # only note on, note off and pitch wheel range are
-    # important for us, so the other midi events are just ignored.
-    event_str = None
-    channel = None
-    
-    if status >= 0x80 and status <= 0x8F: # Note Off
-        channel = status - 0x80 + 1
-        midi_note = data1
-        velocity = data2
-        
-        event_str = "Chan %s Note off" % channel
-        
-        fout.stop_note(channel)
-        mout.note_off(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
-    elif status >= 0x90 and status <= 0x9F: # Note On
-        channel = status - 0x90 + 1
-        midi_note = data1
-        velocity = data2
-        
-        event_str = "Chan %s Note on" % channel
+    def __init__(self):
+        self.running = True
+        self.fout = FloppyOut()    
+        self.midi_fin = MidiFileIn(self.cb_midi_event)
 
-        if velocity > 0:
-            mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
-            fout.play_note(channel, midi_note)      
-        else:
-            mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
-            fout.stop_note(channel) # a volume of 0 is the same as note off
-         
-    elif status >= 0xA0 and status <= 0xAF: # Polyphonic Aftertouch (ignore)
-        return
-    elif status >= 0xB0 and status <= 0xBF: # Chan Control mode change (ignore)
-        return
-    elif status >= 0xC0 and status <= 0xCF: # Chan Program change (ignore)
-        return #mout.set_instrument(event.data, event.channel)
-    elif status >= 0xD0 and status <= 0xDF: # Channel Aftertouch (ignore)
-        return
-    elif status >= 0xE0 and status <= 0xEF: # pitch bend (TODO: don't ignore!)
-        channel = status - 0xE0 + 1
-        velocity = data2
-        pitch_value = 128 * velocity
-        event_str = "Chan %s pitch bend with value %s and" % (channel, pitch_value)     
-    else:
-        event_str = "unknown event (0x%0X)" % (status)
-        print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
-        return
-        
-    if event_str != None:    
-        pass
-        #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
-    
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+
             
-def main():
-    fout = FloppyOut()
-    midi_fin = MidiFileIn(midi_event, mout)
+    def cb_midi_event(self, status, data1, data2, tick):
+        # parsing the events
+        # ==================
+        # only note on, note off and pitch wheel range are
+        # important for us, so the other midi events are just ignored.
+        event_str = None
+        channel = None
     
+        if status >= 0x80 and status <= 0x8F: # Note Off
+            channel = status - 0x80 + 1
+            midi_note = data1
+            velocity = data2
+        
+            event_str = "Chan %s Note off" % channel
+        
+            self.fout.stop_note(channel)
+        elif status >= 0x90 and status <= 0x9F: # Note On
+            channel = status - 0x90 + 1
+            midi_note = data1
+            velocity = data2
+        
+            event_str = "Chan %s Note on" % channel
+
+            if velocity > 0:
+                self.fout.play_note(channel, midi_note)      
+            else:
+                self.fout.stop_note(channel) # a volume of 0 is the same as note off
+         
+        elif status >= 0xA0 and status <= 0xAF: # Polyphonic Aftertouch (ignore)
+            return
+        elif status >= 0xB0 and status <= 0xBF: # Chan Control mode change (ignore)
+            return
+        elif status >= 0xC0 and status <= 0xCF: # Chan Program change (ignore)
+            return
+        elif status >= 0xD0 and status <= 0xDF: # Channel Aftertouch (ignore)
+            return
+        elif status >= 0xE0 and status <= 0xEF: # pitch bend (TODO: don't ignore!)
+            channel = status - 0xE0 + 1
+            velocity = data2
+            pitch_value = 128 * velocity
+            event_str = "Chan %s pitch bend with value %s and" % (channel, pitch_value)     
+        else:
+            event_str = "unknown event (0x%0X)" % (status)
+            print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
+            return
+        
+        if event_str != None:    
+            pass
+            #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
+ 
     def connect_to_serial_ports(self, serial_port):
         for i in range(0, 16):
             active = True
-            floppy_channel = i
+            floppy_channel = i + 1
             port_str = serial_port
-            fout.configure_midi_channel(i, active, floppy_channel, port_str)
+            self.fout.configure_midi_channel(i, active, floppy_channel, port_str)
+
+        self.fout.connect_to_serial_ports()
 
     def playMidiFile(self):
-        midi_fin.play()
-
+        self.midi_fin.play_nogui()
+ 
+   
+            
+def main():
+    flyfi = FlyFiNoGui()
             
     serial_port = sys.argv[1]
     midi_file = sys.argv[2]
 
-    print "port: %s, midi_file: %s" % (serial_port, midi_file)
-   
-    connect_to_serial_ports(self, serial_port)     
-    midi_fin.open_midi_file(midi_file)
-    
-    playMidiFile()
+    flyfi.connect_to_serial_ports(serial_port)     
+    flyfi.midi_fin.open_midi_file(midi_file)
+    flyfi.playMidiFile()
 
 if __name__ == "__main__":
     main()

@@ -66,14 +66,15 @@ class MidiFileIn(object):
         self.seconds_per_tick = None
         self.midi_event_callback = midi_event_callback
         self.debug_pygame_midi_out = debug_pygame_midi_out
+        self.running = True
             
     # (depricated) dirty sleep solution which results in a high cpu load. (but is very accurate)            
     def _dirty_sleep(self, seconds):
-        start = int(time.clock() * 1000 * 1000)
+        start = int(time.time() * 1000 * 1000)
         
         micros = 0
         while True:
-            micros = int(time.clock() * 1000 * 1000)
+            micros = int(time.time() * 1000 * 1000)
             if (micros - start) >= seconds * 1000 * 1000:
                 break
         
@@ -134,17 +135,17 @@ class MidiFileIn(object):
         # so slowdowns of a song will be minimized.
         debug_counter = 0
         
-        while not end_of_track: # every loop is one midi tick
-            start = int(time.clock() * 1000 * 1000)
+        while not end_of_track and self.running: # every loop is one midi tick
+            start = int(time.time() * 1000 * 1000)
             (end_of_track, ticks_to_wait) = self._midi_tick()
             
-            micros = int(time.clock() * 1000 * 1000)
+            micros = int(time.time() * 1000 * 1000)
             
             debug_first = True
             diff = 0
             
             while (micros - start) < ticks_to_wait * self.seconds_per_tick * 1000 * 1000:
-                micros = time.clock() * 1000 * 1000
+                micros = time.time() * 1000 * 1000
                 debug_first = False
                 debug_counter += 1
                 
@@ -183,7 +184,11 @@ class MidiFileIn(object):
     def play(self): 
         start_new_thread(self._worker_thread, ())
        
-        
+    def play_nogui(self):
+        self._worker_thread()
+
+    def stop(self):
+        running = False 
     
         
                     

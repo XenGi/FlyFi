@@ -200,10 +200,16 @@ class FloppyOut():
         except:
             pass #print "serial port error"
             
-            
-        
+                   
     def stop_note(self, floppy_channel):
         self.play_tone(floppy_channel, 0)
+
+    def reset_floppies(self):
+        for port in self._used_serial_ports.iterkeys():
+            ser = self._used_serial_ports[port]
+            print "debug: resetting port: %s" % repr(port)
+            ser.write( struct.pack('B', 100) )
+ 
         
         
 def main():
