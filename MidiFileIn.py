@@ -104,20 +104,20 @@ class MidiFileIn(object):
             # the callback will only be called on Note On, Note Off (and later pitch bend) events.
             if self.midi_event_list_callback is not None:
                 self.midi_event_list_callback(event_list)
-                   
-            micros = time.clock() * 1000 * 1000
+
             time_to_wait = ticks_to_wait * self.seconds_per_tick * 1000 * 1000
-            elapsed_time = micros - start
             
             # delay until playing next tones...
+            elapsed_time = time.clock() * 1000 * 1000 - start        
             while elapsed_time < time_to_wait:
-                micros = time.clock() * 1000 * 1000
-                
-            diff = elapsed_time - time_to_wait
+                elapsed_time = time.clock() * 1000 * 1000 - start
+            
+            delay = elapsed_time - time_to_wait
             
             # if the elapsed time is 10% greater than the maximum time to wait, give out a warning
             if time_to_wait != 0 and elapsed_time > time_to_wait * 1.10:
-                print "Performance problem. time to wait: %d, elapsed time: %d, diff: %d" % (time_to_wait, elapsed_time, diff)
+                print "Performance problem. time to wait: %dus, elapsed time: %dus, delay: %.2f%%" % (time_to_wait, elapsed_time, elapsed_time * 100.0 / time_to_wait - 100)
+            
             
             
         print "[MidiFileIn.py] debug: finished playing!"
