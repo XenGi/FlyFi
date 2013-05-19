@@ -66,7 +66,12 @@ class MidiIn(object):
         
         pygame.midi.init()
         input_id = pygame.midi.get_default_input_id()
-        self.i = pygame.midi.Input( input_id )
+        
+        self.i = None
+        if input_id != -1:
+            self.i = pygame.midi.Input( input_id )
+        else:
+            print "no midi input found. only file mode available!"
     
     def __del__(self):
         self.i.close()
@@ -78,7 +83,8 @@ class MidiIn(object):
             self._poll_event()
         
     def start_midi_polling(self):
-        start_new_thread(self._worker_thread, ())
+        if self.i != None:
+            start_new_thread(self._worker_thread, ())
         
     def stop_midi_polling(self):
         pass

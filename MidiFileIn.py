@@ -68,32 +68,38 @@ class MidiFileIn(object):
         self.debug_pygame_midi_out = debug_pygame_midi_out
         self.running = True
             
+        self.midi_events = [] # the whole midi file will be converted in this list
+            
     # (depricated) dirty sleep solution which results in a high cpu load. (but is very accurate)            
-    def _dirty_sleep(self, seconds):
-        start = int(time.time() * 1000 * 1000)
+    def _dirty_sleep(self, seconds): # use time.clock on windows and time.time() on linux
+        start = time.clock() * 1000 * 1000
         
         micros = 0
         while True:
-            micros = int(time.time() * 1000 * 1000)
+            micros = time.clock() * 1000 * 1000
             if (micros - start) >= seconds * 1000 * 1000:
                 break
         
-    def _midi_tick(self):
-        end_of_track = True
-        ticks_to_wait = None
-            
-        # get lowest tick of all tracks to calulate the ticks to wait
-        # before the next midi tick will be executed
-        for track in self.midi_file:
-            if len(track) and (ticks_to_wait == None or ticks_to_wait > track[-1].tick):
-                ticks_to_wait = track[-1].tick
-            
-        for track_index, track in enumerate(self.midi_file):
-            event_list = []
         
-            while len(track) and track[-1].tick == 0:
-                event_list.append(track.pop())
-
+    def _worker_thread(self):
+        print "[MidiFileIn.py] debug: start playing..."
+                   
+        # This is the mainloop for playing the midi-file.
+        # Previously this dirty sleep function has been layed out to a function
+        # and was called at the end of the loop.
+        # This resulted in slowdowns of the song on very complex midi files like the imperial march, where 
+        # the function already needs much of the midi-tick time while generating the midi-event lists.
+        #
+        # In this new way, only the rest of the time (or no if late) has to be wait at the end of the loop, 
+        # so slowdowns of a song will be minimized.
+        debug_counter = 0
+        
+        for event_item in self.midi_events:
+            ticks_to_wait = event_item[0]
+            event_list = event_item[1]
+            
+            start = time.clock() * 1000 * 1000
+            
             # since the python-midi library seems not to be consistent (sometimes the channels of the events are missing),
             # the callback will only be called on Note On, Note Off (and later pitch bend) events.
             for event in event_list:
@@ -108,44 +114,14 @@ class MidiFileIn(object):
                             self.debug_pygame_midi_out.set_instrument(event.data[0], event.channel)
                    # else:
                    #     print "Unhandled event: %s" % event.name
-                
-
-            if len(track):
-                track[-1].tick -= ticks_to_wait
-                end_of_track = False
-         
-        return (end_of_track, ticks_to_wait)
-        
-        
-    def _worker_thread(self):
-        print "[MidiFileIn.py] debug: start playing..."
-        end_of_track = False    
-    
-        # so .pop() can be used    
-        for track in self.midi_file:
-            track.reverse()
                    
-        # This is the mainloop for playing the midi-file.
-        # Previously this dirty sleep function has been layed out to a function
-        # and was called at the end of the loop.
-        # This resulted in slowdowns of the song on very complex midi files like the imperial march, where 
-        # the function already needs much of the midi-tick time while generating the midi-event lists.
-        #
-        # In this new way, only the rest of the time (or no if late) has to be wait at the end of the loop, 
-        # so slowdowns of a song will be minimized.
-        debug_counter = 0
-        
-        while not end_of_track and self.running: # every loop is one midi tick
-            start = int(time.time() * 1000 * 1000)
-            (end_of_track, ticks_to_wait) = self._midi_tick()
-            
-            micros = int(time.time() * 1000 * 1000)
+            micros = time.clock() * 1000 * 1000
             
             debug_first = True
             diff = 0
             
             while (micros - start) < ticks_to_wait * self.seconds_per_tick * 1000 * 1000:
-                micros = time.time() * 1000 * 1000
+                micros = time.clock() * 1000 * 1000
                 debug_first = False
                 debug_counter += 1
                 
@@ -169,10 +145,40 @@ class MidiFileIn(object):
         pass
         
     def open_midi_file(self, path_to_file):
+        print "[MidiFileIn.py] loading midi file: %s..." % path_to_file
         self.midi_file = midi.read_midifile(path_to_file)
+        self.midi_events = []
         self._set_ms_per_tick_from_bpm(120) #default value which will be overwritten on play
         
-        print "[MidiFileIn.py] opened midi file: %s" % path_to_file
+        # Converting midi tracks to one list
+        # reverse event list, so .pop() can be used
+        for track in self.midi_file:
+            track.reverse()
+        
+        end_of_track = False
+        while not end_of_track:
+            end_of_track = True
+            ticks_to_wait = None
+                
+            # get lowest tick of all tracks to calulate the ticks to wait
+            # before the next midi tick will be executed
+            for track in self.midi_file:
+                if len(track) and (ticks_to_wait == None or ticks_to_wait > track[-1].tick):
+                    ticks_to_wait = track[-1].tick
+                
+            event_list = []
+            for track_index, track in enumerate(self.midi_file):
+                while len(track) and track[-1].tick == 0:
+                    event_list.append(track.pop())
+                
+                if len(track):
+                    track[-1].tick -= ticks_to_wait
+                    end_of_track = False
+                        
+            self.midi_events.append([ticks_to_wait, event_list])
+                
+        
+        print "[MidiFileIn.py] midi file loaded and ready to play."
         
         
         
