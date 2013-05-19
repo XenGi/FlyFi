@@ -45,6 +45,7 @@ from MidiFileIn import MidiFileIn
 from FloppyOut import FloppyOut
 import pygame.midi
 
+import profile
 
 class MainWindow(QtGui.QMainWindow):
     """

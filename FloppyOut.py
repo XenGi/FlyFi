@@ -137,34 +137,8 @@ class FloppyOut():
 
         return ser
 
-    # this is the same as play_tone with the exception, that you can give multiple tones
-    # to it, so it will only call the serial.write() function once, since it is
-    # a very expensive kernel call
-    def _play_tones(self, channel_frequency_list): # TODO: experimental. remove???
-        if midi_channel < 1 or midi_channel > self.MAX_CHANNELS:
-            raise Exception("channel '%d' out of range. it has to be between 1 - %d" % (midi_channel, self.MAX_CHANNELS) )
-            
-        data = ""
-            
-        for tone in channel_frequency_list:
-            if tone.frequency != 0:
-                half_period = (1000000.0 / tone.frequency) / (2.0 * self.ARDUINO_RESOLUTION) # period in microseconds
-            else:
-                half_period = 0
-
-            # build 3 byte data packet for floppy
-            # 1: physical_pin (see microcontroller code for further information)
-            # 2: half_period
-     
-            physical_pin = (self.midi_channels[tone.midi_channel - 1].floppy_channel - 1) * 2
-            data += struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
-
-        try:
-            self._used_serial_ports[self.midi_channels[midi_channel - 1].serial_port].write(data)
-        except:
-            pass #print "serial port error"
-            
-
+    
+          
     def play_tone(self, midi_channel, frequency): 
         if midi_channel < 1 or midi_channel > self.MAX_CHANNELS:
             raise Exception("channel '%d' out of range. it has to be between 1 - %d" % (midi_channel, self.MAX_CHANNELS) )
@@ -186,6 +160,64 @@ class FloppyOut():
         except:
             pass #print "serial port error"
         
+    
+    def play_tones(self, channel_frequency_list):
+        if midi_channel < 1 or midi_channel > self.MAX_CHANNELS:
+            raise Exception("channel '%d' out of range. it has to be between 1 - %d" % (midi_channel, self.MAX_CHANNELS) )
+            
+        if channel_frequency_list == []:
+            return
+         
+        data = ""
+            
+        for tone in channel_frequency_list:
+            channel = tone[0]
+            frequency = tone[1]
+            
+            if tone.frequency != 0:
+                half_period = (1000000.0 / frequency) / (2.0 * self.ARDUINO_RESOLUTION) # period in microseconds
+            else:
+                half_period = 0
+
+            # build 3 byte data packet for floppy
+            # 1: physical_pin (see microcontroller code for further information)
+            # 2: half_period
+     
+            physical_pin = (self.midi_channels[tone.midi_channel - 1].floppy_channel - 1) * 2
+            data += struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
+
+        try:
+            self._used_serial_ports[self.midi_channels[midi_channel - 1].serial_port].write(data)
+        except:
+            pass #print "serial port error"
+    
+
+    # this is the same as play_note with the exception, that you can give multiple tones
+    # to it, so it will only call the serial.write() function once, since it is
+    # a very expensive kernel call
+    def play_notes(self, channel_note_list):
+        #if midi_channel < 1 or midi_channel > self.MAX_CHANNELS:
+        #    raise Exception("channel '%d' out of range. it has to be between 1 - %d" % (midi_channel, self.MAX_CHANNELS) )
+
+        data = ""
+        
+        for note in channel_note_list:
+            midi_channel = note[0]
+            midi_note = note[1]
+            
+            # build 3 byte data packet for floppy
+            # 1: physical_pin (see microcontroller code for further information)
+            # 2: half_period
+     
+            half_period = self.midiHalfperiods[midi_note]
+            physical_pin = (self.midi_channels[midi_channel - 1].floppy_channel - 1) * 2
+            data += struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
+        
+        
+        try:
+            self._used_serial_ports[self.midi_channels[midi_channel - 1].serial_port].write(data)
+        except:
+            pass #print "serial port error"
 
     def play_note(self, midi_channel, midi_note):
         if midi_channel < 1 or midi_channel > self.MAX_CHANNELS:
@@ -203,6 +235,7 @@ class FloppyOut():
                    
     def stop_note(self, floppy_channel):
         self.play_tone(floppy_channel, 0)
+        
 
     def reset_floppies(self):
         for port in self._used_serial_ports.iterkeys():
