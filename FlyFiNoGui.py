@@ -131,7 +131,7 @@ class FlyFiNoGui(object):
                 pass
                 #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
         
-            self.fout.play_notes(note_on_list)
+                self.fout.play_notes(note_on_list)
             
         
     #obsolete            

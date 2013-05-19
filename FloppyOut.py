@@ -198,7 +198,9 @@ class FloppyOut():
     def play_notes(self, channel_note_list):
         #if midi_channel < 1 or midi_channel > self.MAX_CHANNELS:
         #    raise Exception("channel '%d' out of range. it has to be between 1 - %d" % (midi_channel, self.MAX_CHANNELS) )
-
+        if not len(channel_note_list): # list is empty
+            return
+        
         data = ""
         
         for note in channel_note_list:
@@ -212,9 +214,10 @@ class FloppyOut():
             half_period = self.midiHalfperiods[midi_note]
             physical_pin = (self.midi_channels[midi_channel - 1].floppy_channel - 1) * 2
             data += struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
-        
-        
+            
         try:
+            # This is solution only works, when all drives are using the same serial port!
+            # TODO: sort all events by serial ports and THEN do the sends
             self._used_serial_ports[self.midi_channels[midi_channel - 1].serial_port].write(data)
         except:
             pass #print "serial port error"
