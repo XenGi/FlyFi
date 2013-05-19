@@ -75,13 +75,16 @@ class FloppyOut():
         # The floppies are only able to play tones until about tone 71.
         # To prevent damage to the floppy drives, the upper value should be limited.
         # Tones which are too low may not sound good anymore but won't damage the drive.
-        
-        first_note = 0 # B -1 ???
+        # The lowest value MUST not be 0, since this acts as note off
+                 
+
+        first_note = 1 # B -1 ???
         last_note = 71 # B4
         
         
         # First generate a list with zeros for all 108 midi notes.
         # midi notes with a frequency of zero won't be played by the microcontroller.
+        
         self.midiFrequencies = [0 for i in range(128)]
         self.midiHalfperiods = [0 for i in range(128)]
         # The first midi note 0 has a frequency of 8.17575Hz
@@ -219,6 +222,7 @@ class FloppyOut():
             # This is solution only works, when all drives are using the same serial port!
             # TODO: sort all events by serial ports and THEN do the sends
             self._used_serial_ports[self.midi_channels[midi_channel - 1].serial_port].write(data)
+            #print "len: %d" % len(data)
         except:
             pass #print "serial port error"
 
