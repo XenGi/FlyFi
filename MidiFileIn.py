@@ -93,7 +93,6 @@ class MidiFileIn(object):
         #
         # In this new way, only the rest of the time (or no if late) has to be wait at the end of the loop, 
         # so slowdowns of a song will be minimized.
-        debug_counter = 0
         
         for event_item in self.midi_events:
             ticks_to_wait = event_item[0]
@@ -107,20 +106,16 @@ class MidiFileIn(object):
                 self.midi_event_list_callback(event_list)
                    
             micros = time.clock() * 1000 * 1000
-            
-            debug_first = True
-            diff = 0
-            
-            while (micros - start) < ticks_to_wait * self.seconds_per_tick * 1000 * 1000:
-                micros = time.clock() * 1000 * 1000
-                debug_first = False
-                debug_counter += 1
-                
-            #if debug_first:
             time_to_wait = ticks_to_wait * self.seconds_per_tick * 1000 * 1000
             elapsed_time = micros - start
+            
+            # delay until playing next tones...
+            while elapsed_time < time_to_wait:
+                micros = time.clock() * 1000 * 1000
+                
             diff = elapsed_time - time_to_wait
             
+            # if the elapsed time is 10% greater than the maximum time to wait, give out a warning
             if time_to_wait != 0 and elapsed_time > time_to_wait * 1.10:
                 print "Performance problem. time to wait: %d, elapsed time: %d, diff: %d" % (time_to_wait, elapsed_time, diff)
             

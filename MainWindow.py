@@ -79,6 +79,7 @@ class MainWindow(QtGui.QMainWindow):
                 
                 self.fout.stop_note(channel)
                 self.mout.note_off(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
+                
             elif event.name == "Note On":
                 status += event.channel # due to buggy python-midi lib
                 
