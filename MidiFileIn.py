@@ -53,6 +53,7 @@ import pygame.midi
 from pygame.locals import *
 from thread import start_new_thread
 import time
+import sys
 
 import midi
 
@@ -61,10 +62,10 @@ class MidiFileIn(object):
     # For debugging reasons a pygame.midi.Output instance can be given as optional parameter.
     # This will result in correct instrument mappings when Playing the sounds. Else every
     # Channel will have a piano as default instrument.
-    def __init__(self, midi_event_callback, debug_pygame_midi_out = None):
+    def __init__(self, midi_event_list_callback, debug_pygame_midi_out = None):
         self.midi_file = None
         self.seconds_per_tick = None
-        self.midi_event_callback = midi_event_callback
+        self.midi_event_list_callback = midi_event_list_callback
         self.debug_pygame_midi_out = debug_pygame_midi_out
         self.running = True
             
@@ -102,18 +103,8 @@ class MidiFileIn(object):
             
             # since the python-midi library seems not to be consistent (sometimes the channels of the events are missing),
             # the callback will only be called on Note On, Note Off (and later pitch bend) events.
-            for event in event_list:
-                if self.midi_event_callback is not None:
-                    if event.name == "Note On" or event.name == "Note Off":
-                        self.midi_event_callback(event.statusmsg + event.channel, event.data[0], event.data[1], event.tick)
-                    elif event.name == "Set Tempo":
-                        self._set_ms_per_tick_from_bpm(event.bpm)
-                    #    print "[Track %d] Tempo: %d" % (track_index, event.bpm)
-                    elif event.name == "Program Change":
-                        if self.debug_pygame_midi_out is not None:
-                            self.debug_pygame_midi_out.set_instrument(event.data[0], event.channel)
-                   # else:
-                   #     print "Unhandled event: %s" % event.name
+            if self.midi_event_list_callback is not None:
+                self.midi_event_list_callback(event_list)
                    
             micros = time.clock() * 1000 * 1000
             
@@ -136,23 +127,30 @@ class MidiFileIn(object):
             
         print "[MidiFileIn.py] debug: finished playing!"
         
-    def _set_ms_per_tick_from_bpm(self, bpm):
+    def set_bpm(self, bpm):
         ticks_per_beat = self.midi_file.resolution
         beats_per_minute = bpm 
         self.seconds_per_tick = 1.0/((ticks_per_beat * beats_per_minute) / 60.0)
         
     def stop_midi_polling(self):
         pass
+
+    def update_progress(self, progress):
+        sys.stdout.write('\r[{0}] {1}%'.format('#'*(progress/10) + ' '*(10 - progress/10), progress))
         
     def open_midi_file(self, path_to_file):
         print "[MidiFileIn.py] loading midi file: %s..." % path_to_file
         self.midi_file = midi.read_midifile(path_to_file)
         self.midi_events = []
-        self._set_ms_per_tick_from_bpm(120) #default value which will be overwritten on play
+        self.set_bpm(120) #default value which will be overwritten on play (hopefully)
         
         # Converting midi tracks to one list
         # reverse event list, so .pop() can be used
+        num_events = 0
+        cur_event = 0
+        
         for track in self.midi_file:
+            num_events += len(track)
             track.reverse()
         
         end_of_track = False
@@ -170,14 +168,20 @@ class MidiFileIn(object):
             for track_index, track in enumerate(self.midi_file):
                 while len(track) and track[-1].tick == 0:
                     event_list.append(track.pop())
+                    cur_event += 1
                 
                 if len(track):
                     track[-1].tick -= ticks_to_wait
                     end_of_track = False
                         
             self.midi_events.append([ticks_to_wait, event_list])
-                
-        
+   
+            if cur_event % 250 == 0:
+                self.update_progress( int((cur_event * 100.0 / num_events)))
+            
+        self.update_progress(100)
+            
+        sys.stdout.write('\n')
         print "[MidiFileIn.py] midi file loaded and ready to play."
         
         
