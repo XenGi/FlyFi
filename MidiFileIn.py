@@ -72,12 +72,12 @@ class MidiFileIn(object):
         self.midi_events = [] # the whole midi file will be converted in this list
             
     # (depricated) dirty sleep solution which results in a high cpu load. (but is very accurate)            
-    def _dirty_sleep(self, seconds): # use time.clock on windows and time.time() on linux
-        start = time.time() * 1000 * 1000
+    def _dirty_sleep(self, seconds): # use time.clock on windows and time.clock() on linux
+        start = time.clock() * 1000 * 1000
         
         micros = 0
         while True:
-            micros = time.time() * 1000 * 1000
+            micros = time.clock() * 1000 * 1000
             if (micros - start) >= seconds * 1000 * 1000:
                 break
         
@@ -101,14 +101,14 @@ class MidiFileIn(object):
             
             # since the python-midi library seems not to be consistent (sometimes the channels of the events are missing),
             # the callback will only be called on Note On, Note Off (and later pitch bend) events.
-            start = time.time() * 1000 * 1000
+            start = time.clock() * 1000 * 1000
             self.midi_event_list_callback(event_list)
-            elapsed_time = time.time() * 1000 * 1000 - start        
+            elapsed_time = time.clock() * 1000 * 1000 - start        
             time_to_wait = ticks_to_wait * self.seconds_per_tick * 1000 * 1000
             
             # delay until executing next midi event...
             while elapsed_time < time_to_wait:
-                elapsed_time = time.time() * 1000 * 1000 - start 
+                elapsed_time = time.clock() * 1000 * 1000 - start 
             delay = elapsed_time - time_to_wait
            
             # if the elapsed time is 10% greater than the maximum time to wait, give out a warning

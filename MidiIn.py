@@ -70,6 +70,7 @@ class MidiIn(object):
         self.i = None
         if input_id != -1:
             self.i = pygame.midi.Input( input_id )
+            self.start_midi_polling()
         else:
             print "no midi input found. only file mode available!"
     

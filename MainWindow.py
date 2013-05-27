@@ -134,7 +134,7 @@ class MainWindow(QtGui.QMainWindow):
             event_str = "Chan %s Note off" % channel
             
             self.fout.stop_note(channel)
-            self.mout.note_off(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
+            #self.mout.note_off(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
         elif status >= 0x90 and status <= 0x9F: # Note On
             channel = status - 0x90 + 1
             midi_note = data1
@@ -143,10 +143,10 @@ class MainWindow(QtGui.QMainWindow):
             event_str = "Chan %s Note on" % channel
 
             if velocity > 0:
-                self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
+                #self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
                 self.fout.play_note(channel, midi_note)      
             else:
-                self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
+                #self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
                 self.fout.stop_note(channel) # a volume of 0 is the same as note off
              
         elif status >= 0xA0 and status <= 0xAF: # Polyphonic Aftertouch (ignore)
@@ -164,7 +164,7 @@ class MainWindow(QtGui.QMainWindow):
             event_str = "Chan %s pitch bend with value %s and" % (channel, pitch_value)     
         else:
             event_str = "unknown event (0x%0X)" % (status)
-            print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
+            print "%s with note %s and velocity %s @ %s" % (event_str, data1, data2, tick)
             return
             
         if event_str != None:    

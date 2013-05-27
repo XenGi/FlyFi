@@ -208,8 +208,8 @@ def main():
     flyfi.connect_to_serial_ports(serial_port)     
     flyfi.midi_fin.open_midi_file(midi_file)
     
-    profile.runctx('flyfi.playMidiFile()', globals(), locals())
-    #flyfi.playMidiFile()
+    #profile.runctx('flyfi.playMidiFile()', globals(), locals())
+    flyfi.playMidiFile()
 
 if __name__ == "__main__":
     main()
