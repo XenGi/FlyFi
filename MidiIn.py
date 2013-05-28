@@ -70,7 +70,6 @@ class MidiIn(object):
         self.i = None
         if input_id != -1:
             self.i = pygame.midi.Input( input_id )
-            self.start_midi_polling()
         else:
             print "no midi input found. only file mode available!"
     
@@ -95,7 +94,7 @@ class MidiIn(object):
             # read exactly one midi event from the queue. It is possible 
             # to read more midi events at once but it is alot easier to 
             # handle them when reading them one by one.
-            midi_events = self.i.read(100) # read maximum 
+            midi_events = self.i.read(25) # read maximum 
                         
             # parse midi events
             for event in midi_events:            

@@ -117,7 +117,7 @@ class MainWindow(QtGui.QMainWindow):
                 #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
     
     
-    # obsolete
+    # used for live midi
     def cb_midi_event(self, status, data1, data2, tick):
         # parsing the events
         # ==================
@@ -125,6 +125,7 @@ class MainWindow(QtGui.QMainWindow):
         # important for us, so the other midi events are just ignored.
         event_str = None
         channel = None
+        
         
         if status >= 0x80 and status <= 0x8F: # Note Off
             channel = status - 0x80 + 1
@@ -188,8 +189,6 @@ class MainWindow(QtGui.QMainWindow):
          
          
         self.init_ui()
-                
-        # test
         self.midi_in.start_midi_polling()
 
 
