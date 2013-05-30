@@ -59,86 +59,11 @@ from MidiFileIn import MidiFileIn
 from FloppyOut import FloppyOut
 
 
-
+"""
 class FlyFiNoGui(object):
     def __init__(self):
         self.running = True
-        self.fout = FloppyOut()
-        self.midi_fin = MidiFileIn(self.cb_midi_event_list)
-
-        #debug
-        pygame.midi.init() #debug
-        self.mout = pygame.midi.Output(pygame.midi.get_default_output_id())
     
-    def cb_midi_event_list(self, event_list):
-        # parsing the events
-        # ==================
-        # only note on, note off and pitch wheel range are
-        # important for us, so the other midi events are just ignored.
-        
-        # status, data1, data2, tick
-        
-        event_str = None
-        channel = None
-
-        
-        for event in event_list:
-            status = event.statusmsg
-            tick = event.tick
-            
-            # also note off events will be stored here. They will just get a frequency of 0.
-            note_on_list = [] # [ [channel, tone], [channel, tone] ... ]
-        
-            if event.name == "Note Off":
-                status += event.channel # due to buggy python-midi lib
-            
-                channel = status - 0x80 + 1
-                midi_note = event.data[0]
-                velocity = event.data[1]
-                
-                event_str = "Chan %s Note off" % channel
-                
-                note_on_list.append([channel, 0])
-                self.mout.note_off(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
-                
-            elif event.name == "Note On":
-                status += event.channel # due to buggy python-midi lib
-                
-                channel = status - 0x90 + 1
-                midi_note = event.data[0]
-                velocity = event.data[1]
-                
-                event_str = "Chan %s Note on" % channel
-
-                if velocity > 0:
-                    note_on_list.append([channel, midi_note])
-                    self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!      
-                else:
-                    note_on_list.append([channel, 0]) # note off
-                    self.fout.stop_note(channel) # a volume of 0 is the same as note off
-                 
-            elif event.name == "Set Tempo":
-                self.midi_fin.set_bpm(event.bpm)
-              
-            elif event.name == "Program Change": # Chan Program change (change instrument)
-                if self.mout is not None:
-                    self.mout.set_instrument(event.data[0], event.channel)
-
-#            elif status >= 0xE0 and status <= 0xEF: # pitch bend (TODO: don't ignore!)
-#                channel = status - 0xE0 + 1
-#                velocity = event.data[1]
-#                pitch_value = 128 * velocity
-#                event_str = "Chan %s pitch bend with value %s and" % (channel, pitch_value)     
-            else:
-                event_str = "unknown event (0x%0X)" % (status)
-                
-            if event_str != None:    
-                pass
-                #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
-        
-                self.fout.play_notes(note_on_list)
-            
-        
     #obsolete            
     def cb_midi_event(self, status, data1, data2, tick):
         # parsing the events
@@ -189,7 +114,17 @@ class FlyFiNoGui(object):
         if event_str != None:    
             pass
             #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
- 
+"""
+    
+    
+class PiFiHelper(object):
+    def __init__(self):
+        self.fout = FloppyOut()
+        self.midi_fin = MidiFileIn(self.cb_midi_event_list)
+        pygame.midi.init() #debug
+        self.mout = pygame.midi.Output(pygame.midi.get_default_output_id()) # debug
+    
+    
     def connect_to_serial_ports(self, serial_port):
         for i in range(0, 16):
             active = True
@@ -199,16 +134,79 @@ class FlyFiNoGui(object):
 
         self.fout.connect_to_serial_ports()
 
-    def playMidiFile(self):
-        self.midi_fin.play_nogui()
-
+    def cb_midi_event_list(self, event_list):
+        # parsing the events
+        # ==================
+        # only note on, note off and pitch wheel range are
+        # important for us, so the other midi events are just ignored.
         
+        # status, data1, data2, tick
+        
+        event_str = None
+        channel = None
+        
+        for event in event_list:
+            status = event.statusmsg
+            tick = event.tick
+            
+            # also note off events will be stored here. They will just get a frequency of 0.
+            note_on_list = [] # [ [channel, tone], [channel, tone] ... ]
+        
+            if event.name == "Note Off":
+                status += event.channel # due to buggy python-midi lib
+            
+                channel = status - 0x80 + 1
+                midi_note = event.data[0]
+                velocity = event.data[1]
+                
+                event_str = "Chan %s Note off" % channel
+                
+                note_on_list.append([channel, 0])
+                self.mout.note_off(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
+                
+            elif event.name == "Note On":
+                status += event.channel # due to buggy python-midi lib
+                
+                channel = status - 0x90 + 1
+                midi_note = event.data[0]
+                velocity = event.data[1]
+                
+                event_str = "Chan %s Note on" % channel
+
+                if velocity > 0:
+                    note_on_list.append([channel, midi_note])
+                    self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!      
+                else:
+                    note_on_list.append([channel, 0]) # note off
+                    self.fout.stop_note(channel) # a volume of 0 is the same as note off
+                 
+            elif event.name == "Set Tempo":
+                self.midi_fin.set_bpm(event.bpm)
+              
+            elif event.name == "Program Change": # Chan Program change (change instrument)
+                if self.mout is not None:
+                    self.mout.set_instrument(event.data[0], event.channel)
+
+    #            elif status >= 0xE0 and status <= 0xEF: # pitch bend (TODO: don't ignore!)
+    #                channel = status - 0xE0 + 1
+    #                velocity = event.data[1]
+    #                pitch_value = 128 * velocity
+    #                event_str = "Chan %s pitch bend with value %s and" % (channel, pitch_value)     
+            else:
+                event_str = "unknown event (0x%0X)" % (status)
+                
+            if event_str != None:    
+                pass
+                #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
+        
+                self.fout.play_notes(note_on_list)
+    
 
 def main():
-    flyfi = FlyFiNoGui()
-            
     serial_port = sys.argv[1]
-    flyfi.connect_to_serial_ports(serial_port)
+    
+    pifi = PiFiHelper()
+    pifi.connect_to_serial_ports(serial_port)
     
     
     eventnr_filename_dict = {}
@@ -224,7 +222,7 @@ def main():
 
     # Initialize Pygame
     pygame.init()
-
+    
     # Create a window of 800x600 pixels
     screen = pygame.display.set_mode((800, 600))
 
@@ -373,7 +371,8 @@ def main():
 
         # Get the next event
         e = pygame.event.wait()
-
+        pifi.midi_fin.tick()
+        
         # Update the menu, based on which "state" we are in - When using the menu
         # in a more complex program, definitely make the states global variables
         # so that you can refer to them by a name
@@ -461,8 +460,8 @@ def main():
                 print "Filename: %s" % filename
                 
                 midi_file = "./music/%s" % filename
-                flyfi.midi_fin.open_midi_file(midi_file)
-                flyfi.playMidiFile()
+                pifi.midi_fin.open_midi_file(midi_file)
+                pifi.midi_fin.play()
             
                 state = 100 # back to file select menu
             

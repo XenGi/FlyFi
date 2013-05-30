@@ -70,12 +70,23 @@ class MidiFileIn(object):
     # Channel will have a piano as default instrument.
     def __init__(self, midi_event_list_callback, debug_pygame_midi_out = None):
         self.midi_file = None
+        self.midi_file_event_num = 0
+        self.midi_file_current_pos = 0
+        self.cur_event_item = None
+        
         self.seconds_per_tick = None
         self.midi_event_list_callback = midi_event_list_callback
         self.debug_pygame_midi_out = debug_pygame_midi_out
-        self.running = True
-            
+        self.playing = False
+        
+        # timing
+        self.time_start = 0
+        self.time_to_wait = 0
+        
         self.midi_events = [] # the whole midi file will be converted in this list
+        
+        
+        
             
     # (depricated) dirty sleep solution which results in a high cpu load. (but is very accurate)            
     def _dirty_sleep(self, seconds): # use time.clock on windows and time.clock() on linux
@@ -86,7 +97,44 @@ class MidiFileIn(object):
             micros = gettimeus() * 1000 * 1000
             if (micros - start) >= seconds * 1000 * 1000:
                 break
+
+
+    # This function will play the midi-file.
+    # It is implemented asynchonously and has to be called as often as possible for proper playback.
+    
+    def tick(self):        
+        if not self.playing:
+            return
+    
+        # since the python-midi library seems not to be consistent (sometimes the channels of the events are missing),
+        # the callback will only be called on Note On, Note Off (and later pitch bend) events.
+        elapsed_time = gettimeus() * 1000 * 1000 - self.time_start
         
+        # delay until executing next midi event...
+        if elapsed_time >= self.time_to_wait:
+            event_list = self.cur_event_item[1]
+            self.midi_event_list_callback(event_list) # play the tones
+            
+            # if the elapsed time is 10% greater than the maximum time to wait, give out a warning
+            delay = elapsed_time - self.time_to_wait
+            if self.time_to_wait != 0 and elapsed_time > self.time_to_wait * 1.10:
+                print "Performance problem. time to wait: %dus, elapsed time: %dus, delay: %.2f%%" % (self.time_to_wait, elapsed_time, elapsed_time * 100.0 / self.time_to_wait - 100)
+
+            # calculate when it's time to play the next tones
+            self.time_start = gettimeus() * 1000 * 1000
+            ticks_to_wait = self.cur_event_item[0]
+            event_list = self.cur_event_item[1]
+            self.time_to_wait = ticks_to_wait * self.seconds_per_tick * 1000 * 1000
+        
+            self.midi_file_current_pos += 1
+            
+            if self.midi_file_current_pos != self.midi_file_event_num:
+                self.cur_event_item = self.midi_events[self.midi_file_current_pos]
+            else:
+                self.playing = False
+                print "[MidiFileIn.py] debug: finished playing!"
+                
+            
         
     def _worker_thread(self):
         print "[MidiFileIn.py] debug: start playing..."
@@ -120,8 +168,6 @@ class MidiFileIn(object):
             # if the elapsed time is 10% greater than the maximum time to wait, give out a warning
             if time_to_wait != 0 and elapsed_time > time_to_wait * 1.10:
                 print "Performance problem. time to wait: %dus, elapsed time: %dus, delay: %.2f%%" % (time_to_wait, elapsed_time, elapsed_time * 100.0 / time_to_wait - 100)
-            
-            
             
         print "[MidiFileIn.py] debug: finished playing!"
         
@@ -179,7 +225,11 @@ class MidiFileIn(object):
                 self.update_progress( int((cur_event * 100.0 / num_events)))
             
         self.update_progress(100)
-            
+
+        self.midi_file_event_num = len(self.midi_events)
+        self.midi_file_current_pos = 0
+        self.cur_event_item = self.midi_events[self.midi_file_current_pos]
+        
         sys.stdout.write('\n')
         print "[MidiFileIn.py] midi file loaded and ready to play."
         
@@ -191,13 +241,16 @@ class MidiFileIn(object):
     # starts reading the events of the midi file and
     # calls the specified callback with correct timings
     def play(self): 
-        start_new_thread(self._worker_thread, ())
+        self.playing = True
+        print "[MidiFileIn.py] debug: start playing..."
+        
+    #    start_new_thread(self._worker_thread, ())
        
     def play_nogui(self):
         self._worker_thread()
 
     def stop(self):
-        running = False 
+        self.playing = False 
     
         
                     
