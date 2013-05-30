@@ -58,63 +58,6 @@ from Menu.image import *
 from MidiFileIn import MidiFileIn
 from FloppyOut import FloppyOut
 
-
-"""
-class FlyFiNoGui(object):
-    def __init__(self):
-        self.running = True
-    
-    #obsolete            
-    def cb_midi_event(self, status, data1, data2, tick):
-        # parsing the events
-        # ==================
-        # only note on, note off and pitch wheel range are
-        # important for us, so the other midi events are just ignored.
-        event_str = None
-        channel = None
-    
-        if status >= 0x80 and status <= 0x8F: # Note Off
-            channel = status - 0x80 + 1
-            midi_note = data1
-            velocity = data2
-        
-            event_str = "Chan %s Note off" % channel
-        
-            self.fout.stop_note(channel)
-        elif status >= 0x90 and status <= 0x9F: # Note On
-            channel = status - 0x90 + 1
-            midi_note = data1
-            velocity = data2
-        
-            event_str = "Chan %s Note on" % channel
-
-            if velocity > 0:
-                self.fout.play_note(channel, midi_note)      
-            else:
-                self.fout.stop_note(channel) # a volume of 0 is the same as note off
-         
-        elif status >= 0xA0 and status <= 0xAF: # Polyphonic Aftertouch (ignore)
-            return
-        elif status >= 0xB0 and status <= 0xBF: # Chan Control mode change (ignore)
-            return
-        elif status >= 0xC0 and status <= 0xCF: # Chan Program change (ignore)
-            return
-        elif status >= 0xD0 and status <= 0xDF: # Channel Aftertouch (ignore)
-            return
-        elif status >= 0xE0 and status <= 0xEF: # pitch bend (TODO: don't ignore!)
-            channel = status - 0xE0 + 1
-            velocity = data2
-            pitch_value = 128 * velocity
-            event_str = "Chan %s pitch bend with value %s and" % (channel, pitch_value)     
-        else:
-            event_str = "unknown event (0x%0X)" % (status)
-            print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
-            return
-        
-        if event_str != None:    
-            pass
-            #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
-"""
     
     
 class PiFiHelper(object):
@@ -133,7 +76,8 @@ class PiFiHelper(object):
             self.fout.configure_midi_channel(i, active, floppy_channel, port_str)
 
         self.fout.connect_to_serial_ports()
-
+        
+        
     def cb_midi_event_list(self, event_list):
         # parsing the events
         # ==================
@@ -172,10 +116,10 @@ class PiFiHelper(object):
                 velocity = event.data[1]
                 
                 event_str = "Chan %s Note on" % channel
-
+                self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!      
+                
                 if velocity > 0:
                     note_on_list.append([channel, midi_note])
-                    self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!      
                 else:
                     note_on_list.append([channel, 0]) # note off
                     self.fout.stop_note(channel) # a volume of 0 is the same as note off
@@ -195,9 +139,12 @@ class PiFiHelper(object):
             else:
                 event_str = "unknown event (0x%0X)" % (status)
                 
-            if event_str != None:    
-                pass
-                #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
+            if event_str != None:
+                if event.name == "Note On" or event.name == "Note Off":
+                    midi_note = event.data[0]
+                    velocity = event.data[1]
+                
+                   # print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
         
                 self.fout.play_notes(note_on_list)
     
@@ -352,8 +299,13 @@ def main():
     # in one of the menu when that button is selected)
     random.seed()
 
+    
+    
+    
     # The main while loop
     while 1:
+        pifi.midi_fin.tick()
+        
         # Check if the state has changed, if it has, then post a user event to
         # the queue to force the menu to be shown at least once
         if prev_state != state:
@@ -370,8 +322,8 @@ def main():
                 pygame.display.flip()
 
         # Get the next event
-        e = pygame.event.wait()
-        pifi.midi_fin.tick()
+        e = pygame.event.poll()
+        
         
         # Update the menu, based on which "state" we are in - When using the menu
         # in a more complex program, definitely make the states global variables
@@ -456,6 +408,10 @@ def main():
             
             elif state > 100:
                 # play midi here!
+                
+                # TODO: stop midi playback
+                
+                
                 filename = eventnr_filename_dict[state]
                 print "Filename: %s" % filename
                 

@@ -112,8 +112,7 @@ class MidiFileIn(object):
         
         # delay until executing next midi event...
         if elapsed_time >= self.time_to_wait:
-            event_list = self.cur_event_item[1]
-            self.midi_event_list_callback(event_list) # play the tones
+            cur_event_list = self.cur_event_item[1]
             
             # if the elapsed time is 10% greater than the maximum time to wait, give out a warning
             delay = elapsed_time - self.time_to_wait
@@ -126,6 +125,7 @@ class MidiFileIn(object):
             event_list = self.cur_event_item[1]
             self.time_to_wait = ticks_to_wait * self.seconds_per_tick * 1000 * 1000
         
+            self.midi_event_list_callback(event_list) # play the current tones
             self.midi_file_current_pos += 1
             
             if self.midi_file_current_pos != self.midi_file_event_num:
@@ -244,7 +244,7 @@ class MidiFileIn(object):
         self.playing = True
         print "[MidiFileIn.py] debug: start playing..."
         
-    #    start_new_thread(self._worker_thread, ())
+        #start_new_thread(self._worker_thread, ())
        
     def play_nogui(self):
         self._worker_thread()
