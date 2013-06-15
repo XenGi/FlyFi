@@ -49,7 +49,6 @@ __version__ = "0.1"
 
 
 import pygame
-import pygame.midi
 from pygame.locals import *
 from thread import start_new_thread
 import time
@@ -64,11 +63,7 @@ gettimeus = time.clock
 #gettimeus = time.time
 
 class MidiFileIn(object):
-
-    # For debugging reasons a pygame.midi.Output instance can be given as optional parameter.
-    # This will result in correct instrument mappings when Playing the sounds. Else every
-    # Channel will have a piano as default instrument.
-    def __init__(self, midi_event_list_callback, debug_pygame_midi_out = None):
+    def __init__(self, midi_event_list_callback):
         self.midi_file = None
         self.midi_file_event_num = 0
         self.midi_file_current_pos = 0
@@ -76,16 +71,12 @@ class MidiFileIn(object):
         
         self.seconds_per_tick = None
         self.midi_event_list_callback = midi_event_list_callback
-        self.debug_pygame_midi_out = debug_pygame_midi_out
-        self.playing = False
         
         # timing
         self.time_start = 0
         self.time_to_wait = 0
         
         self.midi_events = [] # the whole midi file will be converted in this list
-        
-        
         
             
     # (depricated) dirty sleep solution which results in a high cpu load. (but is very accurate)            
@@ -102,10 +93,7 @@ class MidiFileIn(object):
     # This function will play the midi-file.
     # It is implemented asynchonously and has to be called as often as possible for proper playback.
     
-    def tick(self):        
-        if not self.playing:
-            return
-    
+    def _tick_play(self):
         # since the python-midi library seems not to be consistent (sometimes the channels of the events are missing),
         # the callback will only be called on Note On, Note Off (and later pitch bend) events.
         elapsed_time = gettimeus() * 1000 * 1000 - self.time_start
@@ -131,11 +119,17 @@ class MidiFileIn(object):
             if self.midi_file_current_pos != self.midi_file_event_num:
                 self.cur_event_item = self.midi_events[self.midi_file_current_pos]
             else:
-                self.playing = False
+                self.tick = self._tick_nonplay
                 print "[MidiFileIn.py] debug: finished playing!"
+        
+    def _tick_nonplay(self):
+        pass
+    
+    def tick(self):        
+        pass
                 
             
-        
+    # depricated
     def _worker_thread(self):
         print "[MidiFileIn.py] debug: start playing..."
                    
@@ -241,16 +235,14 @@ class MidiFileIn(object):
     # starts reading the events of the midi file and
     # calls the specified callback with correct timings
     def play(self): 
-        self.playing = True
+        self.tick = self._tick_play
         print "[MidiFileIn.py] debug: start playing..."
-        
-        #start_new_thread(self._worker_thread, ())
        
     def play_nogui(self):
         self._worker_thread()
 
     def stop(self):
-        self.playing = False 
+        self.tick = self._tick_nonplay
     
         
                     
@@ -310,9 +302,6 @@ def main():
             pass
             #print "%s with note %s and velocity %s @ %s" % (event_str, midi_note, velocity, tick)
 
-
-    pygame.midi.init() #debug
-    mout = pygame.midi.Output(pygame.midi.get_default_output_id())
 
     mfin = MidiFileIn(cb_midi_event, mout)
     mfin.open_midi_file("fish2.mid")
