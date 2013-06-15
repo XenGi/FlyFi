@@ -106,7 +106,6 @@ class PiFiHelper(object):
                 event_str = "Chan %s Note off" % channel
                 
                 note_on_list.append([channel, 0])
-                self.mout.note_off(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
                 
             elif event.name == "Note On":
                 status += event.channel # due to buggy python-midi lib
@@ -116,7 +115,6 @@ class PiFiHelper(object):
                 velocity = event.data[1]
                 
                 event_str = "Chan %s Note on" % channel
-                self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!      
                 
                 if velocity > 0:
                     note_on_list.append([channel, midi_note])
@@ -148,40 +146,40 @@ class PiFiHelper(object):
         
                 self.fout.play_notes(note_on_list)
     
+    
+    
+class Enum(object):
+    def __init__(self, *keys):
+        self.__dict__.update(zip(keys, range(len(keys))))
+    
+State = Enum("Exit", "Main", "Browse", "Play") # play must be the last element!
+                
+                
+    
 
 def main():
-    serial_port = sys.argv[1]
-    
     pifi = PiFiHelper()
-    pifi.connect_to_serial_ports(serial_port)
+
+    if len(sys.argv) > 1:
+        serial_port = sys.argv[1]
+        pifi.connect_to_serial_ports(serial_port)
     
     
     eventnr_filename_dict = {}
     # Uncomment this to center the window on the computer screen
     os.environ['SDL_VIDEO_CENTERED'] = '1'
 
-    # Uncomment this to position the screen x_ and y_ pixels from the top left
-    # corner of the monitor/screen
-    #x_ = 560
-    #y_ = 100
-    #if os.name != 'mac':
-    #   os.environ['SDL_VIDEO_WINDOW_POS'] = str(x_) + "," + str(y_)
-
     # Initialize Pygame
     pygame.init()
+   
     
     # Create a window of 800x600 pixels
     screen = pygame.display.set_mode((800, 600))
 
     # Set the window caption
     pygame.display.set_caption("FlyFi Menu - (c) coon")
-
-    # Load some images to use for sample buttons
-    image1  = load_image('1.png', 'images')
-    image2  = load_image('2.png', 'images')
-    image3  = load_image('3.png', 'images')
-    image4  = load_image('4.png', 'images')
-    image5  = load_image('5.png', 'images')
+    
+    # Load background
     bkg = load_image('bkg.jpg', 'images')
 
     # Set a background image - this is to show that the buttons will be
@@ -193,99 +191,32 @@ def main():
     screen.blit(bkg, (0, 0))
     pygame.display.flip()
 
-    # Create 3 diffrent menus.  One of them is only text, another one is only
-    # images, and a third is -gasp- a mix of images and text buttons!  To
-    # understand the input factors, see the menu file
-    menu0 = cMenu(50, 50, 20, 5, 'vertical', 100, screen,
-                  [('Play Midi', 100, None),
-                  ('Exit', 9, None)])
+    
+    # main menu
+    main_menu = cMenu(50, 50, 20, 5, 'vertical', 100, screen,
+                  [('Play Midi', State.Browse, None),
+                  ('Exit', State.Exit, None)])
 
     eventnr_filename_dict = {}
    
     entries = []
-    entries.append(('Previous Menu', 0, None))
+    entries.append(('Previous Menu', State.Main, None))
    
-    file_entries = [(filename, state_index + 101, None) for state_index, filename in enumerate([f for f in os.listdir("./music/.") if f.endswith(".mid")])]
+    # read the ./music/ directory and get all files which end with .mid and store them in file_entries
+    file_entries = [(filename, state_index + State.Play + 1, None) for state_index, filename in enumerate([f for f in os.listdir("./music/.") if f.endswith(".mid")])]
     entries.extend(file_entries)
    
-    entries.append(('Exit', 9, None))
-   
     for i, entry in enumerate(file_entries):
-        eventnr_filename_dict[i + 101] = entry[0]
+        eventnr_filename_dict[State.Play + i + 1] = entry[0]
                  
     menu_play_midi = cMenu(50, 50, 20, 5, 'vertical', 100, screen, entries)
-                 
-    menu1 = cMenu(20, 400, 20, 5, 'horizontal', 4, screen,
-                [('Previous Menu',  0, None),
-                 ('Midi 1.mid',     2, None),
-                 ('Menu 0',         0, None),
-                 ('Menu 2 (Next)',  2, None),
-                 ('Menu 3',         3, None),
-                 ('Next Menu',      2, None),
-                 ('Next Menu',      2, None),
-                 ('Exit',           9, None)])
-
-    menu2 = cMenu(0, 0, 5, 5, 'horizontal', 7, screen,
-                [('Next Menu', 3, image1),
-                 ('Next Menu', 3, image2),
-                 ('Next Menu', 3, image3),
-                 ('Next Menu', 3, image4),
-                 ('Next Menu', 3, image5),
-                 ('Next Menu', 3, image1),
-                 ('Next Menu', 3, image2),
-                 ('Next Menu', 3, image3),
-                 ('Next Menu', 3, image4),
-                 ('Next Menu', 3, image5),
-                 ('Next Menu', 3, image1),
-                 ('Next Menu', 3, image2),
-                 ('Next Menu', 3, image3),
-                 ('Next Menu', 3, image4),
-                 ('Next Menu', 3, image5),
-                 ('Next Menu', 3, image1),
-                 ('Next Menu', 3, image2),
-                 ('Next Menu', 3, image3),
-                 ('Next Menu', 3, image4),
-                 ('Next Menu', 3, image5),
-                 ('Next Menu', 3, image1),
-                 ('Next Menu', 3, image2),
-                 ('Next Menu', 3, image3),
-                 ('Next Menu', 3, image4),
-                 ('Next Menu', 3, image5),
-                 ('Next Menu', 3, image1),
-                 ('Next Menu', 3, image2),
-                 ('Next Menu', 3, image3),
-                 ('Next Menu', 3, image1),
-                 ('Next Menu', 3, image2),
-                 ('Next Menu', 3, image3),
-                 ('Next Menu', 3, image4),
-                 ('Next Menu', 3, image5),
-                 ('Next Menu', 3, image1),
-                 ('Next Menu', 3, image2)])
-
-    menu3 = cMenu(25, 15, 20, 5, 'vertical', 7, screen,
-                [('Prev Menu',          2, None),
-                 ('Add',                4, None),
-                 ('Center',             5, None),
-                 ('Set (0, 0)',         6, None),
-                 ('Rand Colors',        7, None),
-                 ('Rand Config',        8, None),
-                 ('Next Menu',          0, None),
-                 ('Image',              0, image1),
-                 ('Image',              0, image2),
-                 ('Image',              0, image3),
-                 ('Image',              0, image4),
-                 ('Image',              0, image5),
-                 ('Next Menu',          1, None),
-                 ('Exit',               9, None)])
-
-    # Center menu2 at the center of the draw_surface (the entire screen here)
-    menu2.set_center(True, True)
+   
 
     # Create the state variables (make them different so that the user event is
     # triggered at the start of the "while 1" loop so that the initial display
     # does not wait for user input)
-    state = 0
-    prev_state = 1
+    state = State.Main
+    prev_state = State.Exit
 
     # rect_list is the list of pygame.Rect's that will tell pygame where to
     # update the screen (there is no point in updating the entire screen if only
@@ -329,99 +260,26 @@ def main():
         # in a more complex program, definitely make the states global variables
         # so that you can refer to them by a name
         if e.type == pygame.KEYDOWN or e.type == EVENT_CHANGE_STATE:
-            if state == 0:
-                rect_list, state = menu0.update(e, state)
-            elif state == 1:
-                rect_list, state = menu1.update(e, state)
-            elif state == 2:
-                rect_list, state = menu2.update(e, state)
-            elif state == 3:
-                rect_list, state = menu3.update(e, state)
-            elif state == 4:
-                menu3.add_buttons([('A-Nothing!', 3, None),
-                                   ('A-Menu 0',   0, None),
-                                   ('A-Exit',     9, None)])
-                state = 3
-            elif state == 5:
-                menu3.set_center(True, True)
-                state = 3
-            elif state == 6:
-                menu3.set_center(False, False)
-                menu3.set_position(0, 0)
-                state = 3
-            elif state == 7:
-                RGB_available_colors = xrange(0,255)
-
-                new_color = (random.choice(RGB_available_colors),
-                            random.choice(RGB_available_colors),
-                            random.choice(RGB_available_colors))
-                menu3.set_unselected_color(new_color)
-                print 'New Unselected Color = ', new_color
-
-                new_color = (random.choice(RGB_available_colors),
-                            random.choice(RGB_available_colors),
-                            random.choice(RGB_available_colors))
-                menu3.set_selected_color(new_color)
-                print 'New Selected Color = ', new_color
-
-                new_color = (random.choice(RGB_available_colors),
-                            random.choice(RGB_available_colors),
-                            random.choice(RGB_available_colors))
-                menu3.set_image_highlight_color(new_color)
-                print 'New Image Highlight Color = ', new_color
-
-                print ' '
-                state = 3
-            elif state == 8:
-                new_thickness = random.choice((1, 2, 3, 4, 5, 6, 7, 8))
-                menu3.set_image_highlight_thickness(new_thickness)
-                print 'New Image Highlight Thickness = ', new_thickness
-
-                new_h_pad = random.choice(xrange(0, 20))
-                new_v_pad = random.choice(xrange(0, 20))
-                menu3.set_padding(new_h_pad, new_v_pad)
-                print 'New Horizontal Padding = ', new_h_pad
-                print 'New Vertical Padding = ', new_v_pad
-
-                new_orientation = random.choice(('vertical', 'horizontal'))
-                menu3.set_orientation(new_orientation)
-                if new_orientation == 'vertical':
-                    new_change_number = random.choice(xrange(5, 12))
-                elif new_orientation == 'horizontal':
-                    new_change_number = random.choice(xrange(2, 5))
-                    print 'New Orientation = ', new_orientation
-
-                menu3.set_change_number(new_change_number)
-                print 'New Change Number = ', new_change_number
-
-                new_v_alignment = random.choice(('top', 'center', 'bottom'))
-                new_h_alignment = random.choice(('left', 'center', 'right'))
-                menu3.set_alignment(new_v_alignment, new_h_alignment)
-                print 'New Vertical Alignment = ',   new_v_alignment
-                print 'New Horizontal Alignment = ', new_h_alignment
-
-                print ' '
-                state = 3
+            if state == State.Main:
+                rect_list, state = main_menu.update(e, state)
             
-            elif state == 100:
+            elif state == State.Browse:
                 rect_list, state = menu_play_midi.update(e, state)
             
-            elif state > 100:
+            elif state > State.Play:
                 # play midi here!
                 
                 # TODO: stop midi playback
-                
-                
                 filename = eventnr_filename_dict[state]
                 print "Filename: %s" % filename
                 
                 midi_file = "./music/%s" % filename
                 pifi.midi_fin.open_midi_file(midi_file)
                 pifi.midi_fin.play()
+                
+                state = State.Browse
             
-                state = 100 # back to file select menu
-            
-            else:
+            elif state == State.Exit:
                 pygame.quit()
                 sys.exit()
 
