@@ -281,6 +281,8 @@ def main():
                 mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
                 self.fout.stop_note(channel) # a volume of 0 is the same as note off
              
+             ##
+             
         elif status >= 0xA0 and status <= 0xAF: # Polyphonic Aftertouch (ignore)
             return
         elif status >= 0xB0 and status <= 0xBF: # Chan Control mode change (ignore)
