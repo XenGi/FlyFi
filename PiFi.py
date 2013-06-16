@@ -106,6 +106,7 @@ class PiFiHelper(object):
                 event_str = "Chan %s Note off" % channel
                 
                 note_on_list.append([channel, 0])
+                self.mout.note_off(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
                 
             elif event.name == "Note On":
                 status += event.channel # due to buggy python-midi lib
@@ -118,9 +119,11 @@ class PiFiHelper(object):
                 
                 if velocity > 0:
                     note_on_list.append([channel, midi_note])
+                    self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
                 else:
                     note_on_list.append([channel, 0]) # note off
                     self.fout.stop_note(channel) # a volume of 0 is the same as note off
+                    self.mout.note_on(midi_note, velocity, channel - 1) # only for debugging. remove later!!!
                  
             elif event.name == "Set Tempo":
                 self.midi_fin.set_bpm(event.bpm)
