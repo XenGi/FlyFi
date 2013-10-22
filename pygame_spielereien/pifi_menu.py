@@ -144,7 +144,7 @@ class Simulation:
         
         bmfs = BitmapFontScroller(self.screen, "fonts/1/bubsy.bmp", 400, 300)
         bmfs.set_text("COON")
-        bmfs._drop_char("C")
+        bmfs._drop_char("I")
 
         while 1:
             # Lock the framerate at 50 FPS.
