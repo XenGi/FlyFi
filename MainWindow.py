@@ -183,7 +183,7 @@ class MainWindow(QtGui.QMainWindow):
         self.mout = pygame.midi.Output(pygame.midi.get_default_output_id())
 
         self.midi_in = MidiIn(self.cb_midi_event)
-        self.midi_fin = MidiFileIn(self.cb_midi_event_list, self.mout)
+        self.midi_fin = MidiFileIn(self.cb_midi_event_list)
         self.fout = FloppyOut()
         self.settingswindow = SettingsWindow(self.midi_in, self.fout)
          

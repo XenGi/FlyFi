@@ -63,8 +63,8 @@ class FloppyOut():
 
     def __init__(self):
         self.MAX_CHANNELS = 16
-        self.ARDUINO_RESOLUTION = 40 # the timer of the arduino fires every 40 miliseconds
-        self.BAUDRATE = 9600
+        self.ARDUINO_RESOLUTION = 0.4 # the timer of the arduino fires every 40 miliseconds
+        self.BAUDRATE = 115200
         self.midi_channels = []
         self._used_serial_ports = {}
 
@@ -96,7 +96,7 @@ class FloppyOut():
             frequency = 8.17575 * math.pow(2, midi_note / 12.0)
         
             self.midiFrequencies[midi_note] = frequency
-            self.midiHalfperiods[midi_note] = (1000000.0 / frequency) / (2.0 * self.ARDUINO_RESOLUTION) # period in microseconds
+            self.midiHalfperiods[midi_note] = (1000000.0 / frequency) / self.ARDUINO_RESOLUTION # period in microseconds
         
        
         # TODO: Load mappings from a settings file here
@@ -150,13 +150,13 @@ class FloppyOut():
             half_period = (1000000.0 / frequency) / (2.0 * self.ARDUINO_RESOLUTION) # period in microseconds
         else:
             half_period = 0
-
+			
         # build 3 byte data packet for floppy
         # 1: physical_pin (see microcontroller code for further information)
         # 2: half_period
  
-        physical_pin = (self.midi_channels[midi_channel - 1].floppy_channel - 1) * 2
-        data = struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
+        physical_pin = midi_channel
+        data = struct.pack('B', 0x55) + struct.pack('B', 0xAA) + struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
         
         try:
             self._used_serial_ports[self.midi_channels[midi_channel - 1].serial_port].write(data)
@@ -231,8 +231,8 @@ class FloppyOut():
             raise Exception("channel '%d' out of range. it has to be between 1 - %d" % (midi_channel, self.MAX_CHANNELS) )
             
         half_period = self.midiHalfperiods[midi_note]
-        physical_pin = (self.midi_channels[midi_channel - 1].floppy_channel - 1) * 2
-        data = struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
+        physical_pin = midi_channel
+        data = struct.pack('B', 0x55) + struct.pack('B', 0xAA) + struct.pack('B', physical_pin) + struct.pack('>H', int(half_period))
         
         try:
             self._used_serial_ports[self.midi_channels[midi_channel - 1].serial_port].write(data)
